@@ -10,9 +10,9 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.nhaarman.mockito_kotlin.doThrow
-import com.nhaarman.mockito_kotlin.mock
-import com.nhaarman.mockito_kotlin.verify
+import com.nhaarman.mockitokotlin2.doThrow
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.verify
 import ktx.assets.MockAssetLoader.MockParameter
 import org.junit.Assert.*
 import org.junit.Before
@@ -40,6 +40,7 @@ class AssetsTest {
     assertTrue(asset is MockAsset)
     assertSame(assetManager["test"], asset)
     assertEquals("test", asset.data)
+    assertSame(assetManager, (assetWrapper as ManagedAsset).manager)
   }
 
   @Test
@@ -53,6 +54,7 @@ class AssetsTest {
     assertEquals(assetManager["test"], asset)
     assertEquals("test", asset.data)
     assertEquals("additional", asset.additional)
+    assertSame(assetManager, (assetWrapper as ManagedAsset).manager)
   }
 
   @Test
@@ -65,6 +67,7 @@ class AssetsTest {
     assertTrue(asset is MockAsset)
     assertEquals(assetManager["test"], asset)
     assertEquals("test", asset.data)
+    assertSame(assetManager, (assetWrapper as ManagedAsset).manager)
   }
 
   @Test
@@ -81,6 +84,7 @@ class AssetsTest {
     assertTrue(asset is MockAsset)
     assertEquals(assetManager["test"], asset)
     assertEquals("test", asset.data)
+    assertSame(assetManager, (assetWrapper as DelayedAsset).manager)
   }
 
   @Test
@@ -98,6 +102,7 @@ class AssetsTest {
     assertEquals(assetManager["test"], asset)
     assertEquals("test", asset.data)
     assertEquals("additional", asset.additional)
+    assertSame(assetManager, (assetWrapper as DelayedAsset).manager)
   }
 
   @Test
@@ -114,6 +119,7 @@ class AssetsTest {
     assertTrue(asset is MockAsset)
     assertEquals(assetManager["test"], asset)
     assertEquals("test", asset.data)
+    assertSame(assetManager, (assetWrapper as DelayedAsset).manager)
   }
 
   @Test
@@ -166,6 +172,15 @@ class AssetsTest {
     assetManager.unloadSafely("test")
     assetManager.unloadSafely("test")
     assertFalse(assetManager.isLoaded("test"))
+  }
+
+  @Test
+  fun `should ignore exception due to prior disposal`() {
+    assetManager.load<MockAsset>("test")
+    assetManager.finishLoading()
+    val mockAsset = assetManager.get<MockAsset>("test")
+    mockAsset.dispose()
+    assetManager.unloadSafely("test")
   }
 
   @Test
@@ -431,6 +446,79 @@ class AssetsTest {
 
     assertSame(loader, manager.getLoader(MockAsset::class.java, ".mock"))
   }
+
+  @Test
+  fun `should load and unload members`() {
+    class TestAssetGroup : AssetGroup(assetManager){
+      val member1 by asset<MockAsset>("member1")
+      val member2 by asset<MockAsset>("member2")
+    }
+
+    val group = TestAssetGroup()
+    group.finishLoading()
+    assertTrue(group.isLoaded())
+
+    val mockAssets = listOf(group.member1, group.member2)
+    group.unloadAll()
+    assertTrue(!group.isLoaded())
+    for (mockAsset in mockAssets)
+      assertTrue(mockAsset.disposed)
+  }
+
+  @Test
+  fun `should load by update`() {
+    class TestAssetGroup : AssetGroup(assetManager){
+      val member1 by asset<MockAsset>("member1")
+      val member2 by asset<MockAsset>("member2")
+      val member3 by asset<MockAsset>("member3")
+    }
+    val nonmember = assetManager.load<MockAsset>("nonmember")
+
+    val group = TestAssetGroup()
+    nonmember.load()
+    while (true){
+      if (group.update())
+        break
+    }
+    assertTrue(group.isLoaded())
+    assertTrue(listOf(group.member1, group.member2, group.member3).all { !it.disposed })
+  }
+
+  @Test
+  fun `should catch exceptions`() {
+    class TestAssetGroup : AssetGroup(assetManager){
+      val member1 by asset<MockAsset>("member1")
+      val member2 by asset<MockAsset>("member2")
+    }
+
+    val group = TestAssetGroup()
+    with(group) {
+      finishLoading()
+      member1.dispose()
+      member2.dispose()
+    }
+
+    var caught = 0
+    group.unloadAllSafely { _, _ ->
+      caught++
+    }
+    assertEquals(caught, 2)
+  }
+
+  @Test
+  fun `should apply prefix`() {
+    class TestAssetGroup : AssetGroup(assetManager, "prefix/") {
+      val member1 = delayedAsset<MockAsset>("member1")
+      val member2 = delayedAsset<MockAsset>("member2")
+    }
+
+    val group = TestAssetGroup().apply {
+      loadAll()
+      manager.finishLoading()
+    }
+    for (i in 1..2)
+      assertTrue(group.manager.isLoaded("prefix/member$i"))
+  }
 }
 
 /**
@@ -448,6 +536,7 @@ private fun managerWithMockAssetLoader() = AssetManager().apply {
 class MockAsset(val data: String, val additional: String?) : Disposable {
   var disposed = false
   override fun dispose() {
+    require(!disposed) { "Was already disposed!" } // Simulate behavior of some Gdx assets
     disposed = true
   }
 }
@@ -465,8 +554,9 @@ class MockAssetLoader(fileHandleResolver: FileHandleResolver) :
     }
   }
 
-  override fun loadSync(manager: AssetManager, fileName: String,
-                        file: FileHandle, parameter: MockParameter?): MockAsset {
+  override fun loadSync(
+    manager: AssetManager, fileName: String, file: FileHandle, parameter: MockParameter?
+  ): MockAsset {
     val asset = MockAsset(file.path(), additional)
     additional = null
     return asset

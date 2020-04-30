@@ -1,10 +1,9 @@
 package ktx.inject
 
-import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.nhaarman.mockito_kotlin.*
+import com.nhaarman.mockitokotlin2.*
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
@@ -252,6 +251,17 @@ class DependencyInjectionTest {
     assertTrue(context.contains<String>())
   }
 
+  @Test
+  fun `should configure context exactly once`() {
+    val variable: Int
+
+    context.register {
+      variable = 42
+    }
+
+    assertEquals(42, variable)
+  }
+
   @Test(expected = InjectionException::class)
   fun `should throw exception upon injection of missing type`() {
     context.inject<String>()
@@ -301,7 +311,7 @@ class DependencyInjectionTest {
 
   @Test
   fun `should dispose of Disposable components with error handling`() {
-    Gdx.app = mock<Application>()
+    Gdx.app = mock()
     val singleton = mock<Disposable> {
       on(it.dispose()) doThrow GdxRuntimeException("Expected.")
     }

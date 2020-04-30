@@ -5,6 +5,9 @@ import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType
 import com.badlogic.gdx.physics.box2d.Fixture
 import com.badlogic.gdx.physics.box2d.World
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /**
  * [World] factory function.
@@ -18,12 +21,15 @@ fun createWorld(gravity: Vector2 = Vector2.Zero, allowSleep: Boolean = true) = W
  * Type-safe [Body] building DSL.
  * @param type [BodyType] of the constructed [Body]. Matches LibGDX default of [BodyType.StaticBody].
  * @param init inlined. Invoked on a [BodyDefinition] instance, which provides access to [Body] properties, as well as
- *    fixture building DSL.
+ *    fixture building DSL. Defaults to no-op.
  * @return a fully constructed [Body] instance with all defined fixtures.
  * @see BodyDefinition
  * @see FixtureDefinition
  */
-inline fun World.body(type: BodyType = BodyType.StaticBody, init: BodyDefinition.() -> Unit): Body {
+@Box2DDsl
+@OptIn(ExperimentalContracts::class)
+inline fun World.body(type: BodyType = BodyType.StaticBody, init: BodyDefinition.() -> Unit = {}): Body {
+  contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val bodyDefinition = BodyDefinition()
   bodyDefinition.type = type
   bodyDefinition.init()
@@ -46,6 +52,9 @@ fun World.create(bodyDefinition: BodyDefinition): Body {
     val fixture = body.createFixture(fixtureDefinition)
     fixture.userData = fixtureDefinition.userData
     fixtureDefinition.creationCallback?.let { it(fixture) }
+    if (fixtureDefinition.disposeOfShape) {
+      fixtureDefinition.shape.dispose()
+    }
   }
   bodyDefinition.creationCallback?.let { it(body) }
   return body
@@ -88,10 +97,12 @@ val earthGravity = Vector2(0f, -9.8f)
  * @see RayCast
  * @see rayCast
  */
-typealias KtxRayCastCallback = (fixture: Fixture,
-                                point: Vector2,
-                                normal: Vector2,
-                                fraction: Float) -> Float
+typealias KtxRayCastCallback = (
+  fixture: Fixture,
+  point: Vector2,
+  normal: Vector2,
+  fraction: Float
+) -> Float
 
 /**
  * Stores constants that can be returned by [KtxRayCastCallback] to control its behavior.
@@ -103,11 +114,13 @@ object RayCast {
    * @see KtxRayCastCallback
    */
   const val IGNORE = -1f
+
   /**
    * Indicates to terminate the ray cast.
    * @see KtxRayCastCallback
    */
   const val TERMINATE = 0f
+
   /**
    * Indicates to not clip the ray and continue.
    * @see KtxRayCastCallback
@@ -126,9 +139,10 @@ object RayCast {
  * @see RayCast
  */
 fun World.rayCast(
-    start: Vector2,
-    end: Vector2,
-    callback: KtxRayCastCallback) {
+  start: Vector2,
+  end: Vector2,
+  callback: KtxRayCastCallback
+) {
   rayCast(callback, start, end)
 }
 
@@ -145,10 +159,65 @@ fun World.rayCast(
  * @see RayCast
  */
 fun World.rayCast(
-    startX: Float,
-    startY: Float,
-    endX: Float,
-    endY: Float,
-    callback: KtxRayCastCallback) {
+  startX: Float,
+  startY: Float,
+  endX: Float,
+  endY: Float,
+  callback: KtxRayCastCallback
+) {
   rayCast(callback, startX, startY, endX, endY)
 }
+
+/**
+ * Query the world for all fixtures that potentially overlap the provided AABB (Axis-Aligned Bounding Box).
+ *
+ * @param lowerX the x coordinate of the lower left corner
+ * @param lowerY the y coordinate of the lower left corner
+ * @param upperX the x coordinate of the upper right corner
+ * @param upperY the y coordinate of the upper right corner
+ * @param callback a user implemented callback that is called for every fixture overlapping the AABB.
+ * @see Query
+ */
+fun World.query(
+  lowerX: Float,
+  lowerY: Float,
+  upperX: Float,
+  upperY: Float,
+  callback: KtxQueryCallback
+) {
+  QueryAABB(callback, lowerX, lowerY, upperX, upperY)
+}
+
+/**
+ * Stores constants that can be returned by [KtxQueryCallback] to control its behavior.
+ * @see query
+ */
+object Query {
+  /**
+   * Stop querying the world.
+   * @see KtxQueryCallback
+   */
+  const val STOP = false
+
+  /**
+   * Continue querying for the next match.
+   * @see KtxQueryCallback
+   */
+  const val CONTINUE = true
+}
+
+/**
+ * Callback lambda for querying with an AABB.
+ *
+ * This lambda is called for each fixture the AABB overlaps.
+ *
+ * There is no guarantee on the order of the callback is called.
+ *
+ * The lambda returns whether to terminate the query.
+ *
+ * Can be used in place of [com.badlogic.gdx.physics.box2d.QueryCallback] via Kotlin SAM conversion.
+ *
+ * @see Query
+ * @see query
+ */
+typealias KtxQueryCallback = (fixture: Fixture) -> Boolean

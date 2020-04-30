@@ -1,11 +1,13 @@
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-app.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-app)
+
 # KTX: basic application utilities
 
-Abstract `ApplicationListener` implementations and general LibGDX utilities.
+Basic `ApplicationListener` implementations and general LibGDX utilities.
 
 ### Why?
 
 LibGDX offers some basic `ApplicationListener` implementations in form of `ApplicationAdapter` and `Game`, but both are
-pretty basic. They do not handle screen clearing or fixed rendering time step, both of which often have to be set up
+pretty bare-bones. They do not handle screen clearing or manage views list, both of which often have to be set up
 manually in LibGDX applications. This module aims to provide a simple base for your custom `ApplicationListener`: if you
 do not have your favorite setup implemented just yet, it might be a good idea to base it on abstract classes provided
 by `ktx-app`.
@@ -14,32 +16,30 @@ by `ktx-app`.
 
 #### `ApplicationListener` implementations
 
-- `KtxApplicationAdapter` is an `ApplicationListener` extension. Provides no-op implementations of all methods, without
-being an abstract class like `com.badlogic.gdx.ApplicationAdapter`.
+- `KtxApplicationAdapter` is an interface that extends `ApplicationListener`. Provides no-op implementations of all
+methods, without being an abstract class like `com.badlogic.gdx.ApplicationAdapter`, which makes it more flexible.
 - `KtxGame` is a bit more opinionated `Game` equivalent that not only delegates all game events to the current `Screen`
 instance, but also ensures non-nullability of screens, manages screen clearing, and maintains screens collection, which
-allows switching screens while knowing only their concrete class. `KtxScreen` is an interface extending `Screen` that
-provides no-op method implementations, making all methods optional to override.
+allows switching screens while knowing only their concrete class.
+*`KtxScreen` is an interface extending `Screen` that provides no-op method implementations, making all methods optional
+to override.
 
 #### `InputProcessor` implementations
 
-- `KtxInputAdapter` is an `InputProcessor` extension. Provides no-op implementations of all methods, without
-being an abstract class like `com.badlogic.gdx.InputAdapter`.
+- `KtxInputAdapter` is an interface extending `InputProcessor`. Provides no-op implementations of all methods, without
+being a class like `com.badlogic.gdx.InputAdapter`.
 
 #### Miscellaneous utilities
 
 - `clearScreen` is an inlined utility function that hides the OpenGL calls, allowing to clear the screen with a chosen
 color.
-- `LetterboxingViewport` combines `ScreenViewport` and `FitViewport` behavior: it targets a specific aspect ratio and
-applies letterboxing like `FitViewport`, but it does not scale rendered objects when resized, keeping them in fixed size
-similarly to `ScreenViewport`. Thanks to customizable target PPI value, it is ideal for GUIs and can easily support
-different screen sizes.
-- `color` factory methods allows to use idiomatic named parameters to construct LibGDX `Color` instances.
-- `copy` extension method added to `Color`. It allows to create a new `Color` with copied color values. Supports values
-overriding with optional, named parameters.
-- `use` inlined extension methods added to `Batch` and `ShaderProgram`. They allow to omit the `begin()` and `end()`
-calls before using batches and shader programs.
 - `emptyScreen` provides no-op implementations of `Screen`.
+
+#### Profiling
+
+- `profile` inlined function allows to measure performance of the chosen operation with LibGDX `PerformanceCounter`.
+- `PerformanceCounter.profile` inlined extension method eases direct usage of the `PerformanceCounter` class.
+- `PerformanceCounter.prettyPrint` extension method allows to quickly log basic performance metrics.
 
 ### Usage examples
 
@@ -60,7 +60,7 @@ class MyApplicationListener : KtxApplicationAdapter {
 }
 ```
 
-Implementing `KtxGame` with one screen that displays text:
+Implementing `KtxGame` with one screen that displays text with `Batch` utilities from `ktx-graphics`: 
 
 ```Kotlin
 import com.badlogic.gdx.Screen
@@ -69,7 +69,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
-import ktx.app.use
+import ktx.graphics.use
 
 class ExampleScreen : KtxScreen {
   // Notice no `lateinit var` - ExampleScreen has no create()
@@ -121,57 +121,39 @@ class MyInputListener : KtxInputAdapter {
 }
 ```
 
-Creating and customizing a new `LetterboxingViewport`:
+Profiling an operation:
 
 ```Kotlin
-import ktx.app.LetterboxingViewport
+import ktx.app.profile
 
-val viewport: Viewport = LetterboxingViewport(targetPpiX = 96f, targetPpiY = 96f, aspectRatio = 4f / 3f)
-// Updating viewport on resize:
-viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
-```
-
-Using a `Batch`:
-
-```Kotlin
-import ktx.app.*
-import com.badlogic.gdx.graphics.g2d.BitmapFont
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
-
-val batch = SpriteBatch()
-val font = BitmapFont()
-// Drawing the font with batch:
-batch.use {
-  font.draw(it, "KTX!", 100f, 100f)
+fun profileThreadSleep() {
+  profile(name = "Thread.sleep", repeats = 10) {
+    // Will be repeated 10 times to measure performance:
+    Thread.sleep(10L)
+  }
 }
-
-/* The snippet above is an equivalent to:
-
-  batch.begin()
-  font.draw(batch, "KTX!", 100f, 100f)
-  batch.end()
-*/
 ```
 
-Creating `Color` instances:
+Profiling an operation with an existing `PerformanceCounter`:
+
 ```Kotlin
-import ktx.app.*
+import com.badlogic.gdx.utils.PerformanceCounter
+import ktx.app.prettyPrint
+import ktx.app.profile
 
-val color = color(red = 1f, green = 0.5f, blue = 0.75f, alpha = 0.25f)
-// Fourth parameter - alpha - is optional and defaults to 1f:
-val nonTransparentGray = color(0.8f, 0.8f, 0.8f)
-```
+fun profileThreadSleep() {
+  // Window size passed to the constructor as the second argument
+  // will be the default amount of repetitions during profiling:
+  val profiler = PerformanceCounter("Thread.sleep", 10)
+  profiler.profile {
+    // Will be repeated 10 times to measure performance:
+    Thread.sleep(10L)
+  }
 
-Copying `Color` instances:
-```Kotlin
-import ktx.app.*
-import com.badlogic.gdx.graphics.Color
-
-val blue = Color.BLUE.copy()
-// `blue` has same values as `Color.BLUE`, but it's not the same instance.
-
-// You can optionally override chosen copied values:
-val violet = blue.copy(red = 1f)
+  // You can also print the report manually
+  // with a custom number format:
+  profiler.prettyPrint(decimalFormat = "%.4f s")
+}
 ```
 
 ### Alternatives
@@ -183,11 +165,12 @@ library with some classes similar to `ktx-app`.
 - [LibGDX Markup Language](https://github.com/czyzby/gdx-lml/tree/master/lml) allows to build `Scene2D` views using
 HTML-like syntax. It also features a custom `ApplicationListener` implementation, which helps with managing `Scene2D`
 screens.
-- [Autumn MVC](https://github.com/czyzby/gdx-lml/tree/master/mvc) is a [Spring](https://spring.io/)-inspired
+- [Autumn MVC](https://github.com/czyzby/gdx-lml/tree/master/mvc) is a [Spring](https://spring.io/) inspired
 model-view-controller framework built on top of LibGDX. It features its own `ApplicationListener` implementation, which
 initiates and handles annotated view instances.
 
 #### Additional documentation
 
-- [The life cycle article.](https://github.com/libgdx/libgdx/wiki/The-life-cycle)
-- [Viewports article.](https://github.com/libgdx/libgdx/wiki/Viewports)
+- [Official life cycle article.](https://github.com/libgdx/libgdx/wiki/The-life-cycle)
+- [Official viewports article.](https://github.com/libgdx/libgdx/wiki/Viewports)
+- [Official article on profiling.](https://github.com/libgdx/libgdx/wiki/Profiling)

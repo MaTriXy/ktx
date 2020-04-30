@@ -1,5 +1,7 @@
 package ktx.collections
 
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.utils.Pool
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.LinkedList
@@ -185,12 +187,14 @@ class ArraysTest {
   @Test
   fun `should return last valid index of empty BooleanArray`() {
     val emptyArray = GdxBooleanArray()
+
     assertEquals(-1, emptyArray.lastIndex)
   }
 
   @Test
   fun `should return negative last index for null BooleanArray`() {
     val nullArray: GdxBooleanArray? = null
+
     assertEquals(-1, nullArray.lastIndex)
   }
 
@@ -242,89 +246,122 @@ class ArraysTest {
   }
 
   @Test
-  fun `should add values with + operator`() {
-    val array = GdxArray<String>()
+  fun `should add elements with += operator`() {
+    val array = GdxArray.with("1")
 
-    array + "1"
+    array += "2"
 
-    assertEquals(1, array.size)
-    assertTrue("1" in array)
-    assertEquals("1", array[0])
-
-    array + "2" + "3"
-
-    assertEquals(3, array.size)
-    assertTrue("2" in array)
-    assertTrue("3" in array)
-    assertEquals("2", array[1])
-    assertEquals("3", array[2])
+    assertEquals(gdxArrayOf("1", "2"), array)
   }
 
   @Test
-  fun `should add Iterables with + operator`() {
-    val array = GdxArray<String>()
+  fun `should add Iterable with += operator`() {
+    val array = GdxArray.with("1")
 
-    array + listOf("1", "2", "3")
+    array += listOf("2", "3") as Iterable<String>
 
-    assertEquals(3, array.size)
-    assertTrue("1" in array)
-    assertTrue("2" in array)
-    assertTrue("3" in array)
-    assertEquals("1", array[0])
-    assertEquals("2", array[1])
-    assertEquals("3", array[2])
+    assertEquals(gdxArrayOf("1", "2", "3"), array)
   }
 
   @Test
-  fun `should add native Arrays with + operator`() {
+  fun `should add Collection with += operator`() {
+    val array = GdxArray.with("1")
+
+    array += listOf("2", "3")
+
+    assertEquals(gdxArrayOf("1", "2", "3"), array)
+  }
+
+  @Test
+  fun `should add GdxArray with += operator`() {
+    val array = GdxArray.with("1")
+
+    array += GdxArray.with("2", "3")
+
+    assertEquals(gdxArrayOf("1", "2", "3"), array)
+  }
+
+  @Test
+  fun `should add arrays and elements with + operator`() {
     val array = GdxArray<String>()
 
-    array + arrayOf("1", "2", "3")
+    val result = array + "1"
 
-    assertEquals(3, array.size)
-    assertTrue("1" in array)
-    assertTrue("2" in array)
-    assertTrue("3" in array)
-    assertEquals("1", array[0])
-    assertEquals("2", array[1])
-    assertEquals("3", array[2])
+    assertEquals(gdxArrayOf("1"), result)
+    assertEquals(gdxArrayOf<String>(), array)
+
+    val chained = result + "2" + "3"
+
+    assertEquals(gdxArrayOf("1", "2", "3"), chained)
+    assertEquals(gdxArrayOf("1"), result)
+  }
+
+  @Test
+  fun `should add arrays and Iterables with + operator`() {
+    val array = GdxArray.with("0")
+
+    val result = array + listOf("1", "2", "3")
+
+    assertEquals(gdxArrayOf("0", "1", "2", "3"), result)
+    assertEquals(gdxArrayOf("0"), array)
+  }
+
+  @Test
+  fun `should add arrays and native Arrays with + operator`() {
+    val array = GdxArray.with("0")
+
+    val result = array + arrayOf("1", "2", "3")
+
+    assertEquals(gdxArrayOf("0", "1", "2", "3"), result)
+    assertEquals(gdxArrayOf("0"), array)
   }
 
   @Test
   fun `should remove values with - operator`() {
+    var array = GdxArray.with("1", "2", "3", "4", "5", "6")
+
+    var result = array - "1"
+
+    assertEquals(gdxArrayOf("2", "3", "4", "5", "6"), result)
+    assertEquals(gdxArrayOf("1", "2", "3", "4", "5", "6"), array)
+
+    array = result
+    result = array - listOf("2", "3")
+
+    assertEquals(gdxArrayOf("4", "5", "6"), result)
+    assertEquals(gdxArrayOf("2", "3", "4", "5", "6"), array)
+
+    array = result
+    result = array - arrayOf("4", "5")
+
+    assertEquals(gdxArrayOf("6"), result)
+    assertEquals(gdxArrayOf("4", "5", "6"), array)
+  }
+
+  @Test
+  fun `should remove values with -= operator`() {
     val array = GdxArray.with("1", "2", "3", "4", "5", "6")
 
-    array - "1"
+    array -= "1"
 
-    assertEquals(5, array.size)
-    assertFalse("1" in array)
+    assertEquals(gdxArrayOf("2", "3", "4", "5", "6"), array)
 
-    array - "2" - "3"
+    array -= listOf("2", "3")
 
-    assertEquals(3, array.size)
-    assertFalse("2" in array)
-    assertFalse("3" in array)
+    assertEquals(gdxArrayOf("4", "5", "6"), array)
 
-    array - listOf("4", "5")
+    array -= arrayOf("4", "5")
 
-    assertEquals(1, array.size)
-    assertFalse("4" in array)
-    assertFalse("5" in array)
-
-    array - arrayOf("6", "7")
-
-    assertEquals(0, array.size)
-    assertFalse("6" in array)
-    assertFalse("7" in array)
+    assertEquals(gdxArrayOf("6"), array)
   }
 
   @Test
   fun `should chain operators`() {
     val array = GdxArray.with("1", "2", "3", "4")
 
-    array + "5" - "2" + GdxArray.with("7") - GdxArray.with("4", "6")
+    val result = array + "5" - "2" + GdxArray.with("7") - GdxArray.with("4", "6")
 
-    assertEquals(GdxArray.with("1", "3", "5", "7"), array)
+    assertEquals(GdxArray.with("1", "3", "5", "7"), result)
   }
 
   @Test
@@ -359,9 +396,7 @@ class ArraysTest {
 
     array.sortDescending()
 
-    assertEquals(3, array[0])
-    assertEquals(2, array[1])
-    assertEquals(1, array[2])
+    assertEquals(GdxArray.with(3, 2, 1), array)
   }
 
   @Test
@@ -370,9 +405,7 @@ class ArraysTest {
 
     array.sortBy { it.length }
 
-    assertEquals("One", array[0])
-    assertEquals("Eleven", array[1])
-    assertEquals("Twenty-one", array[2])
+    assertEquals(GdxArray.with("One", "Eleven", "Twenty-one"), array)
   }
 
   @Test
@@ -381,9 +414,132 @@ class ArraysTest {
 
     array.sortByDescending { it.length }
 
-    assertEquals("Twenty-one", array[0])
-    assertEquals("Eleven", array[1])
-    assertEquals("One", array[2])
+    assertEquals(GdxArray.with("Twenty-one", "Eleven", "One"), array)
+  }
+
+  @Test
+  fun `should remove elements from existing GdxArray`() {
+    val array = GdxArray.with(1, 2, 3, 4, 5)
+    val noneRemovedResult = array.removeAll { it > 10 }
+    assert(!noneRemovedResult)
+    assertEquals(GdxArray.with(1, 2, 3, 4, 5), array)
+
+    val evensRemovedResult = array.removeAll { it % 2 == 0 }
+    assert(evensRemovedResult)
+    assertEquals(GdxArray.with(1, 3, 5), array)
+
+    val allRemovedResult = array.removeAll { it is Number }
+    assert(allRemovedResult)
+    assertEquals(GdxArray<Int>(), array)
+
+    val emptyRemoveResult = array.removeAll { it > 0 }
+    assert(!emptyRemoveResult)
+    assertEquals(GdxArray<Int>(), array)
+  }
+
+  @Test
+  fun `should free removed elements`() {
+    val array = GdxArray.with(Vector2(), Vector2(1f, 1f), Vector2(2f, 2f))
+    val pool = object : Pool<Vector2>() {
+      override fun newObject() = Vector2()
+    }
+    array.removeAll(pool) { it.len() > 0.5f }
+    assertEquals(pool.peak, 2)
+  }
+
+  @Test
+  fun `should transfer elements matching predicate`() {
+    val array = GdxArray.with(0, 1, 2, 3, 4)
+    val target = GdxArray.with<Int>()
+
+    array.transfer(toArray = target) {
+      it % 2 == 0
+    }
+
+    assertEquals(GdxArray.with(1, 3), array)
+    assertEquals(GdxArray.with(0, 2, 4), target)
+  }
+
+  @Test
+  fun `should transfer all elements`() {
+    val array = GdxArray.with(0, 1, 2, 3, 4)
+    val target = GdxArray.with<Int>()
+
+    array.transfer(toArray = target) {
+      true
+    }
+
+    assertEquals(GdxArray.with<Int>(), array)
+    assertEquals(GdxArray.with(0, 1, 2, 3, 4), target)
+  }
+
+  @Test
+  fun `should transfer no elements`() {
+    val array = GdxArray.with(0, 1, 2, 3, 4)
+    val target = GdxArray.with<Int>()
+
+    array.transfer(toArray = target) {
+      false
+    }
+
+    assertEquals(GdxArray.with(0, 1, 2, 3, 4), array)
+    assertEquals(GdxArray.with<Int>(), target)
+  }
+
+  @Test
+  fun `should not transfer any elements from empty array`() {
+    val array = GdxArray.with<Int>()
+    val target = GdxArray.with<Int>()
+
+    array.transfer(toArray = target) {
+      it % 2 == 0
+    }
+
+    assertEquals(GdxArray.with<Int>(), array)
+    assertEquals(GdxArray.with<Int>(), target)
+  }
+
+  @Test
+  fun `should transfer to wider typed array`() {
+    val array = GdxArray.with("ABC", "AB", "ABC")
+    val target = GdxArray<CharSequence>()
+
+    array.transfer(target) {
+      it.length < 3
+    }
+
+    assertEquals(GdxArray.with("ABC", "ABC"), array)
+    assertEquals(GdxArray.with("AB" as CharSequence), target)
+  }
+
+  @Test
+  fun `should retain elements from existing GdxArray`() {
+    val array = GdxArray.with(1, 2, 3, 4, 5)
+    val allRetainedResult = array.retainAll { it < 6 }
+    assert(!allRetainedResult)
+    assertEquals(GdxArray.with(1, 2, 3, 4, 5), array)
+
+    val oddsRetainedResult = array.retainAll { it % 2 == 1 }
+    assert(oddsRetainedResult)
+    assertEquals(GdxArray.with(1, 3, 5), array)
+
+    val noneRetainedResult = array.retainAll { it < 0 }
+    assert(noneRetainedResult)
+    assertEquals(GdxArray<Int>(), array)
+
+    val emptyRetainResult = array.retainAll { it > 0 }
+    assert(!emptyRetainResult)
+    assertEquals(GdxArray<Int>(), array)
+  }
+
+  @Test
+  fun `should free unretained elements`() {
+    val array = GdxArray.with(Vector2(), Vector2(1f, 1f), Vector2(2f, 2f))
+    val pool = object : Pool<Vector2>() {
+      override fun newObject() = Vector2()
+    }
+    array.retainAll(pool) { it.len() < 0.5f }
+    assertEquals(pool.peak, 2)
   }
 
   @Test
@@ -428,49 +584,28 @@ class ArraysTest {
 
     val set = array.toGdxSet()
 
-    assertEquals(3, set.size)
-    assertTrue("1" in set)
-    assertTrue("2" in set)
-    assertTrue("3" in set)
+    assertEquals(gdxSetOf("1", "2", "3"), set)
   }
 
   @Test
   fun `should convert Iterables to Arrays`() {
     val listAsArray = listOf("1", "2", "3").toGdxArray()
 
-    assertEquals(3, listAsArray.size)
-    assertTrue("1" in listAsArray)
-    assertTrue("2" in listAsArray)
-    assertTrue("3" in listAsArray)
-    assertEquals("1", listAsArray[0])
-    assertEquals("2", listAsArray[1])
-    assertEquals("3", listAsArray[2])
+    assertEquals(gdxArrayOf("1", "2", "3"), listAsArray)
   }
 
   @Test
   fun `should convert native Arrays to GdxArrays`() {
     val array = arrayOf("1", "2", "3").toGdxArray()
 
-    assertEquals(3, array.size)
-    assertTrue("1" in array)
-    assertTrue("2" in array)
-    assertTrue("3" in array)
-    assertEquals("1", array[0])
-    assertEquals("2", array[1])
-    assertEquals("3", array[2])
+    assertEquals(gdxArrayOf("1", "2", "3"), array)
   }
 
   @Test
   fun `should convert native IntArrays to GdxIntArrays`() {
     val intArray = intArrayOf(1, 2, 3).toGdxArray()
 
-    assertEquals(3, intArray.size)
-    assertTrue(1 in intArray)
-    assertTrue(2 in intArray)
-    assertTrue(3 in intArray)
-    assertEquals(1, intArray[0])
-    assertEquals(2, intArray[1])
-    assertEquals(3, intArray[2])
+    assertEquals(GdxIntArray.with(1, 2, 3), intArray)
   }
 
   @Test

@@ -3,6 +3,9 @@ package ktx.box2d
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.*
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType.*
+import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.spy
+import com.nhaarman.mockitokotlin2.verify
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -36,7 +39,7 @@ class WorldsTest : Box2DTest() {
   fun `should construct a Body`() {
     val world = createWorld()
 
-    val body = world.body { }
+    val body = world.body()
 
     assertNotNull(body)
     assertSame(world, body.world)
@@ -48,7 +51,7 @@ class WorldsTest : Box2DTest() {
   fun `should construct a Body of chosen BodyType`() {
     val world = createWorld()
 
-    val body = world.body(type = KinematicBody) { }
+    val body = world.body(type = KinematicBody)
 
     assertNotNull(body)
     assertSame(world, body.world)
@@ -103,6 +106,36 @@ class WorldsTest : Box2DTest() {
     assertTrue(edge.shape is EdgeShape)
     assertEdgeEquals(Vector2(1f, 1f), Vector2(2f, 2f), edge.shape as EdgeShape)
     world.dispose()
+  }
+
+  @Test
+  fun `should construct Body exactly once`() {
+    val world = createWorld()
+    val fixture: FixtureDefinition
+    val variable: Int
+
+    world.body {
+      fixture = circle()
+      variable = 42
+    }
+
+    assertNotNull(fixture)
+    assertEquals(42, variable)
+  }
+
+  @Test
+  fun `should dispose of Shape instances during Body construction`() {
+    val world = createWorld()
+    val reusable = spy(CircleShape())
+    val disposable = spy(CircleShape())
+
+    world.body {
+      fixture(reusable, disposeOfShape = false)
+      fixture(disposable, disposeOfShape = true)
+    }
+
+    verify(reusable, never()).dispose()
+    verify(disposable).dispose()
   }
 
   @Test
@@ -175,7 +208,7 @@ class WorldsTest : Box2DTest() {
   @Test
   fun `should ray-cast between two vectors`() {
     val world = createWorld()
-    val expectedEdge = world.body {}.edge(from = Vector2.Zero, to = Vector2(0f, 2f)) {}
+    val expectedEdge = world.body().edge(from = Vector2.Zero, to = Vector2(0f, 2f))
     var called = false
 
     world.rayCast(Vector2(-1f, 1f), Vector2(1f, 1f)) { fixture, point, normal, fraction ->
@@ -194,7 +227,7 @@ class WorldsTest : Box2DTest() {
   @Test
   fun `should ray-cast between two coordinates`() {
     val world = createWorld()
-    val expectedEdge = world.body {}.edge(from = Vector2.Zero, to = Vector2(0f, 2f)) {}
+    val expectedEdge = world.body().edge(from = Vector2.Zero, to = Vector2(0f, 2f))
     var called = false
 
     world.rayCast(startX = -1f, startY = 1f, endX = 1f, endY = 1f) { fixture, point, normal, fraction ->
@@ -217,5 +250,54 @@ class WorldsTest : Box2DTest() {
     assertEquals(1f, RayCast.CONTINUE, tolerance)
     assertEquals(0f, RayCast.TERMINATE, tolerance)
     assertEquals(-1f, RayCast.IGNORE, tolerance)
+  }
+
+  @Test
+  fun `should query for overlapping fixtures with AABB and stop`() {
+    val world = createWorld()
+    val matchingEdge1 = world.body().edge(from = Vector2.Zero, to = Vector2(0f, 2f))
+    val matchingEdge2 = world.body().edge(from = Vector2(1f, 0f), to = Vector2(1f, 2f))
+    val matchedFixtures = mutableSetOf<Fixture>()
+
+    world.query(lowerX = -1f, lowerY = 1f, upperX = 1f, upperY = 1f) { fixture ->
+      matchedFixtures += fixture
+      Query.STOP
+    }
+
+    assertEquals(1, matchedFixtures.size)
+    assertTrue(matchedFixtures.contains(matchingEdge1) || matchedFixtures.contains(matchingEdge2))
+    world.dispose()
+  }
+
+  @Test
+  fun `should query for overlapping fixtures with AABB and continue`() {
+    val world = createWorld()
+    val matchingEdge1 = world.body().edge(from = Vector2.Zero, to = Vector2(0f, 2f))
+    val matchingEdge2 = world.body().edge(from = Vector2(1f, 0f), to = Vector2(1f, 2f))
+    val matchedFixtures = mutableSetOf<Fixture>()
+
+    world.query(lowerX = -1f, lowerY = 1f, upperX = 1f, upperY = 1f) { fixture ->
+      matchedFixtures += fixture
+      Query.CONTINUE
+    }
+
+    assertEquals(setOf(matchingEdge1, matchingEdge2), matchedFixtures)
+    world.dispose()
+  }
+
+  @Test
+  fun `should query world and not callback if there are no fixtures overlapping the AABB`() {
+    val world = createWorld()
+    world.body().edge(from = Vector2.Zero, to = Vector2(0f, 2f))
+    world.body().edge(from = Vector2(1f, 0f), to = Vector2(1f, 2f))
+    val matchedFixtures = mutableSetOf<Fixture>()
+
+    world.query(lowerX = -2f, lowerY = 1f, upperX = -1f, upperY = 1f) { fixture ->
+      matchedFixtures += fixture
+      Query.CONTINUE
+    }
+
+    assertTrue(matchedFixtures.isEmpty())
+    world.dispose()
   }
 }

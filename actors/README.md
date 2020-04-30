@@ -1,3 +1,5 @@
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-actors.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-actors)
+
 # KTX: general `Scene2D` utilities
 
 Extensions and utilities for stages, actors, actions and event listeners.
@@ -17,7 +19,7 @@ it comes to chaining.
 - `Actor.centerPosition` extension method was added to allow quick actor centering, hiding the necessary math.
 - `Group.contains(Actor)` method was added to support `in` operator. You can check if an `Actor` is a direct child of
 a `Group` with `actor in group` syntax.
-- `Group` and `Stage` support actor adding and removal through `+` and `-` operators.
+- `Group` and `Stage` support actor adding and removal through `+=` and `-=` operators.
 - `Stage.contains(Actor)` method was added to support `in` operator. This will report `true` if the `Actor` is on the
 `Stage` (it does not have to be a direct child of `Stage` root group).
 - `Actor.alpha` and `Stage.alpha` inlined extension properties were added to support easy modification of `Color.a` value.
@@ -27,6 +29,7 @@ a `Group` with `actor in group` syntax.
 
 - Lambda-compatible `Actor.onChange` method was added. Allows to listen to `ChangeEvents`.
 - Lambda-compatible `Actor.onClick` method was added. Attaches `ClickListeners`.
+- Lambda-compatible `Actor.onTouchDown` and `Actor.onTouchUp` methods were added. Attaches `ClickListeners`. 
 - Lambda-compatible `Actor.onKey` method was added. Allows to listen to `InputEvents` with `keyTyped` type.
 - Lambda-compatible `Actor.onKeyDown` and `Actor.onKeyUp` methods were added. They allow to listen to `InputEvents`
 with `keyDown` and `keyUp` type, consuming key code of the pressed or released key (see LibGDX `Keys` class).
@@ -34,7 +37,7 @@ with `keyDown` and `keyUp` type, consuming key code of the pressed or released k
 - Lambda-compatible `Actor.onKeyboardFocus` method was added. Allows to listen to `FocusEvents` with `keyboard` type.
 - `KtxInputListener` is an open class that extends `InputListener` with no-op default implementations and type
 improvements (nullability data).
-- `onChangeEvent`, `onClickEvent`, `onKeyEvent`, `onKeyDownEvent`, `onKeyUpEvent`, `onScrollFocusEvent` and
+- `onChangeEvent`, `onClickEvent`, `onTouchEvent`, `onKeyEvent`, `onKeyDownEvent`, `onKeyUpEvent`, `onScrollFocusEvent` and
 `onKeyboardFocusEvent` `Actor` extension methods were added. They consume the relevant `Event` instances as lambda
 parameters. Both listener factory variants are inlined, but the ones ending with *Event* provide more lambda parameters
 and allow to inspect the original `Event` instance that triggered the listener. Regular listener factory methods should
@@ -42,8 +45,22 @@ be enough for most use cases.
 
 #### Actions
 
-- Global actions can be added and removed from `Stage` with `+` and `-` operators.
-- `Action.then` *infix* extension function allows to easily create action sequences with pleasant syntax.
+- Global actions can be added and removed from `Stage` with `+=` and `-=` operators.
+- Actions can be added and removed to individual `Actor` instances with `+=` and `-=` operators.
+- `Action.then` *infix* extension function allows easy creation of action sequences with pleasant syntax.
+Either wraps the two actions in a `SequenceAction`, or if the left action is already a `SequenceAction`,
+adds the right action to it so long chains result in a single `SequenceAction`.
+- `Action.along` *infix* extension function allows easy creation of parallel actions with pleasant syntax.
+Either wraps the two actions in a `ParallelAction`, or if the left action is already a `ParallelAction`,
+adds the right action to it so long chains result in a single `ParallelAction`.
+- `+` operator can be used to create action sequences (alternative to `then`).
+The operator is non-mutating, so it wraps the two actions every time.
+For long chains, the `then` function may be preferred to avoid creating multiple nested `SequenceActions`.
+- `/` operator can be used combine actions in parallel (alternative to `along`).
+The operator is non-mutating, so it wraps the two actions every time.
+For long chains, the `along` function may be preferred to avoid creating multiple nested ParallelActions.
+- `+=` operator adds an action to an existing `SequenceAction` or `ParallelAction`.
+- `Action.repeat` and `Action.repeatForever` allow to repeat a chosen action by wrapping it with a `RepeatAction`.
 
 #### Widgets
 
@@ -65,9 +82,9 @@ Adding and removing actors with operators:
 ```Kotlin
 import ktx.actors.*
 
-table + button
-table - label
-stage + table
+table += button
+table -= label
+stage += table
 ```
 
 Checking if actor is on a stage or in a group:
@@ -126,6 +143,38 @@ label.onClickEvent { inputEvent, actor, x, y ->
   // If you need access to the local actor click coordinates, use this expanded method variant.
   println("$actor clicked by $inputEvent at ($x, $y)!")
 }
+
+button.onTouchDown {
+  println("Button down!")
+}
+
+button.onTouchUp {
+  println("Button up!")
+}
+
+button.onTouchEvent(
+  // If you need access to the original InputEvent, use this expanded method variant.
+  downListener = { inputEvent, actor -> println("$actor down by $inputEvent!") },
+  upListener = { inputEvent, actor -> println("$actor up by $inputEvent!") }
+)
+// or with a single lambda. In this case you can use InputEvent.Type to distinguish between touchDown and touchUp
+button.onTouchEvent( { inputEvent, actor -> println("$actor ${inputEvent.type} by $inputEvent!") })
+
+button.onTouchEvent(
+  // If you need access to the local actor coordinates, use this expanded method variant.
+  downListener = { inputEvent, actor, x, y -> println("$actor down by $inputEvent at ($x, $y)!") },
+  upListener = { inputEvent, actor, x, y -> println("$actor up by $inputEvent at ($x, $y)!")}
+)
+// or again as single lambda
+button.onTouchEvent( { inputEvent, actor -> println("$actor ${inputEvent.type} by $inputEvent at ($x, $y)!") })
+
+button.onTouchEvent(
+  // If you need access to the pointer and mouse button, use this expanded method variant.
+  downListener = { inputEvent, actor, x, y, pointer, mouseButton -> println("$actor down by $inputEvent at ($x, $y) with pointer $pointer and mouseButton $mouseButton!") },
+  upListener = { inputEvent, actor, x, y, pointer, mouseButton -> println("$actor up by $inputEvent at ($x, $y) with pointer $pointer and mouseButton $mouseButton!")}
+)
+// or again as single lambda
+button.onTouchEvent( { inputEvent, actor -> println("$actor ${inputEvent.type} by $inputEvent at ($x, $y) with pointer $pointer and mouseButton $mouseButton!") })
 ```
 
 Adding an `EventListener` which consumes typed characters:
@@ -169,22 +218,42 @@ textField.onKeyboardFocusEvent { focusEvent, actor ->
 }
 ```
 
-Chaining actions (`SequenceAction` utility):
+Chaining actions with infix `then` function (`SequenceAction` utility) and infix `along` function (`ParallelAction` utility):
+
 ```Kotlin
 import ktx.actors.*
 import com.badlogic.gdx.scenes.scene2d.actions.Actions.*
 
-val sequence = alpha(0f) then fadeIn(1f) then delay(1f) then fadeOut(1f)
-actor + sequence // Adding action to the actor.
+val sequence = alpha(0f) then fadeIn(1f) then delay(1f) then fadeOut(1f) 
+actor += sequence // Adding action to the actor.
+
+val parallel = fadeTo(0f) along scaleTo(0f, 0f) along moveTo(0f, 0f)
+actor += parallel
+```
+
+Chaining actions with `+` operator (`SequenceAction` utility) and `/` operator (`ParallelAction` utility):
+
+```Kotlin
+import ktx.actors.*
+import com.badlogic.gdx.scenes.scene2d.actions.Actions.*
+
+val sequence = alpha(0f) + fadeIn(1f) + delay(1f) + fadeOut(1f)
+actor += sequence // Adding action to the actor.
+
+val parallel = fadeTo(0f) / scaleTo(0f, 0f) / moveTo(0f, 0f)
+actor += parallel
 ```
 
 Adding and removing actions to stages and actors with operators:
 ```Kotlin
 import ktx.actors.*
 
-button + action - otherAction
-stage + someAction // Adds action to stage root actor,
-                   // affecting all actors on the stage.
+button += action
+button -= otherAction
+
+// Adding global Stage action:
+stage += someAction 
+// Since the action is added to Stage's root actor, it affects all widgets on the Stage.
 ```
 
 Accessing and changing text of `Label` and `TextButton` widgets:
@@ -216,16 +285,6 @@ class MyInputListener : KtxInputListener() {
   }
 }
 ```
-
-#### Migration guide
-
-In **KTX** up to `1.9.6-b4`, extension methods `onChange`, `onClick`, `onKey`, `onKeyDown`, `onKeyUp`, `onScrollFocus`
-and `onKeyboardFocus` consumed `Event` and `Actor` instances. This lead to common usage of `_, _ ->`, which was against
-the goal of boilerplate-less listeners. That is why the existing listener factory methods where renamed with `Event`
-suffix, and a new set of extension methods with the same names were added - this time consuming a minimal amount of
-parameters. Add `Event` suffix to each of your listener methods or refactor them to the new API with less parameters.
-For example, if you used `Actor.onChange` extension method, use `Actor.onChangeEvent` instead or remove the `event, actor`
-parameters if you do not really need them at all.
 
 ### Alternatives
 

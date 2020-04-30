@@ -1,12 +1,14 @@
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-assets.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-assets)
+
 # KTX: assets management
 
 Utilities for management of assets and heavy resources.
 
 ### Why?
 
-LibGDX does a good job of helping you with assets (through `AssetManager`, for example), but - as usual in case of Java
-APIs - it does not use the full potential of Kotlin features. This library aims to provide Kotlin extensions and wrappers
-for the existing API to make assets usage more natural in Kotlin applications.
+LibGDX does a good job of helping you with assets through `AssetManager` and related APIs, but - as usual in case of
+Java libraries - it does not allow to use the full potential of Kotlin features. This library aims to provide Kotlin
+extensions and wrappers for the existing asset APIs to make assets usage more idiomatic in Kotlin applications.
 
 ### Guide
 
@@ -16,6 +18,7 @@ for the existing API to make assets usage more natural in Kotlin applications.
 wrapper, which can be used as delegate property, as well as used directly to manage the asset. Usually the asset will
 not be available until `AssetManager.finishLoading` or looped `AssetManager.update` are called. You can use string file
 paths or `AssetDescriptor` instances to load the asset. Usage example:
+
 ```Kotlin
 // Eagerly loading an asset:
 val wrapper = load<Texture>("test.png")
@@ -28,6 +31,7 @@ class Test(assetManager: AssetManager) {
   // Type of texture property is Texture.
 }
 ```
+
 - `AssetManager.getAsset` utility extension method can be used to access an already loaded asset, without having to pass
 class to the manager to specify asset type. This is the preferred way of accessing assets from the `AssetManager`,
 provided that they were already scheduled for asynchronous loading and fully loaded. Note that this method will fail if
@@ -40,9 +44,10 @@ val texture: Texture = assetManager.getAsset("test.png")
 asset eagerly on first get call. It will not schedule the asset for asynchronous loading - instead, it will block current
 thread until the asset is loaded on the first access. Use for lightweight assets that should be (rarely) loaded only when
 requested. Usage example:
+
 ```Kotlin
 // Eagerly loading an asset:
-val texture = by assetManager.loadOnDemand<Texture>("test.png")
+val texture by assetManager.loadOnDemand<Texture>("test.png")
 // Asset will be loaded upon first `texture` usage.
 
 // Delegate field:
@@ -58,48 +63,10 @@ loaded in the first place. Typical usage: `assetManager.unloadSafely("test.png")
 exception thrown during reloading. Note that `AssetManager` can throw `GdxRuntimeException` if the asset was not loaded yet.
 - `AssetManager.getLoader` and `setLoader` extension methods with reified types added to ease handling of `AssetLoader`
 instances registered in the `AssetManager`.
-
-Note: if you can use coroutines in your project, [`ktx-async`](../async) module provides a lightweight coroutines-based
-alternative to `AssetManager` that can greatly simplify your asset loading code.
-
-##### Implementation tip: type-safe assets
-
-Create an enum with all assets of the selected type. Let's assume our application stores all images in `assets/images`
-folder in `PNG` format. Given `logo.png`, `player.png` and `enemy.png` images, we would create a similar enum:
-```Kotlin
-enum class Images {
-  logo,
-  player,
-  enemy;
-
-  val path = "images/${name}.png"
-  fun load() = manager.load<Texture>(path)
-  operator fun invoke() = manager.getAsset<Texture>(path)
-  companion object {
-    lateinit var manager: AssetManager
-  }
-}
-```
-Operator `invoke()` function brings asset accessing boilerplate to mininum: `enumName()`. Thanks to wildcard imports, we
-can access `logo`, `player` and `enemy` enum instances directly:
-```Kotlin
-import com.example.Images.*
-
-// Setting AssetManager instance:
-Images.manager = myAssetManager
-
-// Scheduling logo loading:
-logo.load()
-
-// Getting Texture instance of loaded logo:
-val texture = logo()
-
-// Scheduling loading of all assets:
-Images.values().forEach { it.load() }
-
-// Accessing all textures:
-val textures = Images.values().map { it() }
-```
+- The `AssetGroup` class is provided for easily grouping together assets so they can be managed as a group through calls 
+such as `loadAll()` or `unloadAll()`. The intended use is to subclass `AssetGroup` and list its member assets as
+properties using `AssetGroup.asset()` or `AssetGroup.delayedAsset()`. It also allows for using a common prefix for 
+the file names of the group in case they are stored in a specific subdirectory.
 
 #### `Disposable`
 
@@ -141,6 +108,11 @@ file types.
 with `ResolutionFileResolver`.
 - `resolution` factory function was added to construct `ResolutionFileResolver.Resolution` instances with idiomatic
 Kotlin syntax.
+
+#### Loaders
+
+- `TextAssetLoader` allows to read text files asynchronously via the `AssetManager`. Very useful if you want to leverage
+`AssetManager` loading and management API for a notable number of text files.
 
 ### Usage examples
 
@@ -208,6 +180,8 @@ Immediately extracting a **fully loaded** asset from an `AssetManager`:
 import ktx.assets.*
 
 val texture: Texture = assetManager.getAsset("image.png")
+// Or alternatively:
+val texture = assetManager.getAsset<Texture>("image.png")
 ```
 
 Using an asset loaded on the first getter call rather than scheduled for loading:
@@ -277,8 +251,139 @@ val resolver = FileType.Internal.getResolver().forResolutions(
 )
 ```
 
+A simple application that registers `TextAssetLoader`, reads a file asynchronously, prints it and terminates:
+
+```Kotlin
+import com.badlogic.gdx.ApplicationAdapter
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.assets.AssetManager
+import ktx.assets.TextAssetLoader
+import ktx.assets.load
+import ktx.assets.setLoader
+
+class MyApp : ApplicationAdapter() {
+  private val manager = AssetManager()
+
+  override fun create() {
+    manager.setLoader(TextAssetLoader())
+    manager.load<String>("file.txt")
+  }
+
+  override fun render() {
+    if (!manager.update()) {
+      println("Loading...")
+    } else {
+      println(manager.get<String>("file.txt"))
+      Gdx.app.exit()
+    }
+  }
+}
+```
+
+Using `AssetGroup` to schedule loading and manage a group of assets:
+
+```Kotlin
+/** Groups UI-related assets. */
+class UIAssets(manager: AssetManager) : AssetGroup(manager, filePrefix = "ui/") {
+  // The assets are listed using asset(),
+  // so they are immediately queued for loading when the object is created.  
+  val skin by asset<Skin>("skin.json")
+  val clickSound by asset<Sound>("mapScreen.wav")
+}
+
+val uiAssets = UIAssets(manager)
+// No need to queue the assets. They are queued when creating the group object.
+
+// Block until they are finished loading:
+uiAssets.finishLoading() 
+// Note that classic incremental loading with update() is also available.
+
+// Accessing assets - same as with regular properties:
+uiAssets.skin
+uiAssets.clickSound
+
+// Disposing of the assets:
+uiAssets.unloadAll()
+```
+
+Using `AssetGroup` with assets loaded on demand once needed:
+
+```Kotlin
+/** An asset groups that loads the assets on demand on first access. */
+class MapScreenAssets(manager: AssetManager) : AssetGroup(manager, filePrefix = "mapScreen/") {
+  // The assets are listed using delayedAsset(),
+  // so they are loaded on demand on the first access
+  // or have to be scheduled for loading manually with loadAll().
+  val atlas by delayedAsset<TextureAtlas>("map.atlas")
+  val music by delayedAsset<Music>("mapScreen.ogg")
+}
+
+val mapScreenAssets = MapScreenAssets(manager)
+// Assets are not queued for loading just yet.
+
+// To load the assets, you can access them with properties:
+mapScreenAssets.atlas
+// Note that this will block until the asset is loaded.
+
+// You can schedule them for asynchronous loading to avoid thread blocking:
+mapScreenAssets.loadAll()
+if (mapScreenAssets.update()) {
+  // The member assets are now ready to use.
+} else {
+  // Continue showing loading prompt.
+}
+
+// Disposing of the assets:
+mapScreenAssets.unloadAll()
+```
+
+#### Implementation tip: type-safe assets
+
+Create an enum with all assets of the selected type. Let's assume our application stores all images in `assets/images`
+folder in `PNG` format. Given `logo.png`, `player.png` and `enemy.png` images, we would create a similar enum:
+
+```Kotlin
+enum class Images {
+  logo,
+  player,
+  enemy;
+
+  val path = "images/${name}.png"
+  fun load() = manager.load<Texture>(path)
+  operator fun invoke() = manager.getAsset<Texture>(path)
+  companion object {
+    lateinit var manager: AssetManager
+  }
+}
+```
+
+Operator `invoke()` function brings asset accessing boilerplate to mininum: `enumName()`. Thanks to wildcard imports, we
+can access `logo`, `player` and `enemy` enum instances directly:
+
+```Kotlin
+import com.example.Images.*
+
+// Setting AssetManager instance:
+Images.manager = myAssetManager
+
+// Scheduling logo loading:
+logo.load()
+
+// Getting Texture instance of loaded logo:
+val texture = logo()
+
+// Scheduling loading of all assets:
+Images.values().forEach { it.load() }
+
+// Accessing all textures:
+val textures = Images.values().map { it() }
+```
+
 ### Alternatives
 
+- [`ktx-assets-async`](../assets-async) provides an alternative asset manager with non-blocking API based on coroutines.
+In contrary to LibGDX `AssetManager`, **KTX** `AssetStorage` supports concurrent loading of assets on multiple threads
+performing asynchronous operations.
 - [libgdx-utils](https://bitbucket.org/dermetfan/libgdx-utils/) feature an annotation-based asset manager implementation
 which easies loading of assets (through internal reflection usage).
 - [Autumn MVC](https://github.com/czyzby/gdx-lml/tree/master/mvc) is a [Spring](https://spring.io/)-inspired
@@ -287,8 +392,6 @@ injects assets into annotated fields thanks to reflection.
 - [Kiwi](https://github.com/czyzby/gdx-lml/tree/master/kiwi) library has some utilities for assets handling, like
 graceful `Disposable` destruction methods and LibGDX collections implementing `Disposable` interface. It is aimed at
 Java applications though - **KTX** syntax should feel more natural when using Kotlin.
-- [`ktx-async`](../async) module provides `AssetStorage`: a lightweight coroutines-based alternative to `AssetManager`.
-It was extracted to `ktx-async` module due to the coroutines usage.
 
 #### Additional documentation
 

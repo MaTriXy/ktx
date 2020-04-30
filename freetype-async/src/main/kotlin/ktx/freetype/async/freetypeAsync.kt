@@ -5,41 +5,58 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGeneratorLoader
 import com.badlogic.gdx.graphics.g2d.freetype.FreetypeFontLoader
-import ktx.async.assets.AssetStorage
+import ktx.assets.async.AssetStorage
 import ktx.freetype.freeTypeFontParameters
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /**
- * Registers all loaders necessary to load [BitmapFont] and [FreeTypeFontGenerator] instances from TTF and OTF files.
- * @param fileExtensions a collection of supported file extensions. If an empty array is passed, [BitmapFont] loaders
- * will not be registered. Defaults to ".ttf" and ".otf".
- * @param replaceDefaultBitmapFontLoader if true, default [BitmapFont] loader will be replaced and any attempts to load
- * [BitmapFont] will result in use of [FreetypeFontLoader] instead. [fileExtensions] will be ignored and FreeType loader
- * will be used by default unless overridden.
+ * Registers all loaders necessary to load [BitmapFont] and [FreeTypeFontGenerator]
+ * instances from TTF and OTF files.
+ *
+ * [fileExtensions] is a collection of supported file extensions. If an empty array is passed,
+ * [BitmapFont] loaders will not be registered. Defaults to ".ttf" and ".otf".
+ *
+ * If [replaceDefaultBitmapFontLoader] is true, default [BitmapFont] loader will be replaced
+ * and any attempts to load [BitmapFont] will result in the use of [FreetypeFontLoader] instead.
+ * [fileExtensions] will be ignored and FreeType loader will be used by default for all font
+ * assets unless overridden.
  */
 fun AssetStorage.registerFreeTypeFontLoaders(
-    fileExtensions: Array<String> = arrayOf(".ttf", ".otf"),
-    replaceDefaultBitmapFontLoader: Boolean = false) {
-  val fontGeneratorLoader = FreeTypeFontGeneratorLoader(fileResolver)
-  setLoader<FreeTypeFontGenerator>(fontGeneratorLoader)
+  fileExtensions: Array<String> = arrayOf(".ttf", ".otf"),
+  replaceDefaultBitmapFontLoader: Boolean = false
+) {
+  setLoader<FreeTypeFontGenerator> { FreeTypeFontGeneratorLoader(fileResolver) }
 
-  val fontLoader = FreetypeFontLoader(fileResolver)
   if (replaceDefaultBitmapFontLoader) {
-    setLoader<BitmapFont>(fontLoader)
+    setLoader<BitmapFont> { FreetypeFontLoader(fileResolver) }
   } else {
     fileExtensions.forEach { extension ->
-      setLoader<BitmapFont>(fontLoader, suffix = extension)
+      setLoader<BitmapFont>(suffix = extension) { FreetypeFontLoader(fileResolver) }
     }
   }
 }
 
 /**
  * Allows to customize parameters of a loaded FreeType font.
- * @param file path to the FreeType font file.
- * @param setup should specify font parameters. Will be invoked on a new instance of [FreeTypeFontParameter]. Inlined.
- * @return fully loaded BitmapFont. Note that this method will suspend the current coroutine to perform asynchronous
- * font loading.
+ *
+ * [path] is the file path to the FreeType font file.
+ * Must be compatible with the [AssetStorage.fileResolver].
+ *
+ * [setup] can be used to specify and customize the parameters of the loaded font.
+ * It will be inlined and invoked on a [FreeTypeFontParameter].
+ *
+ * Returns the result of font loading. See [AssetStorage.load] for lists of possible outcomes.
+ *
+ * Note that you can also call [AssetStorage.loadSync] or [AssetStorage.loadAsync] directly if needed,
+ * but you must pass [FreeTypeFontParameter]. See [freeTypeFontParameters] utility.
  */
-inline suspend fun AssetStorage.loadFreeTypeFont(
-    file: String,
-    setup: FreeTypeFontParameter.() -> Unit = {}): BitmapFont =
-    load<BitmapFont>(file, parameters = freeTypeFontParameters(file, setup))
+@OptIn(ExperimentalContracts::class)
+suspend inline fun AssetStorage.loadFreeTypeFont(
+  path: String,
+  setup: FreeTypeFontParameter.() -> Unit = {}
+): BitmapFont {
+  contract { callsInPlace(setup, InvocationKind.EXACTLY_ONCE) }
+  return load<BitmapFont>(path, parameters = freeTypeFontParameters(path, setup))
+}

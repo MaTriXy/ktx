@@ -1,7 +1,8 @@
 package ktx.ashley
 
 import com.badlogic.ashley.core.Entity
-import org.assertj.core.api.Assertions.*
+import com.badlogic.ashley.core.PooledEngine
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -15,6 +16,9 @@ object EntitiesSpec : Spek({
       Entity().apply {
         add(transform)
       }
+    }
+    val engine by memoized {
+      PooledEngine()
     }
     describe("get operator") {
       it("should get component with component mapper for better performance") {
@@ -64,6 +68,57 @@ object EntitiesSpec : Spek({
       }
       it("should return true if does not exists") {
         assertThat(entity.hasNot(Texture.mapper)).isTrue()
+      }
+    }
+
+    describe("contains component function") {
+      it("should return true if component exists") {
+        assertThat(entity.contains(Transform.mapper)).isTrue()
+      }
+      it("should return false if component does not exists") {
+        assertThat(entity.contains(Texture.mapper)).isFalse()
+      }
+      it("should return true as operator if component exists") {
+        assertThat(Transform.mapper in entity).isTrue()
+      }
+      it("should return false as operator if component does not exists") {
+        assertThat(Texture.mapper !in entity).isTrue()
+      }
+    }
+
+    describe("plus assignment operator") {
+      it("should add a component to an entity") {
+        entity.remove<Transform>()
+
+        entity += Transform(1f, 0f)
+
+        assertThat(Transform.mapper in entity).isTrue()
+        assertThat(entity[Transform.mapper]?.x).isEqualTo(1f)
+      }
+
+      it("should replace a component of an entity") {
+        entity += Transform(1f, 0f)
+
+        assertThat(entity[Transform.mapper]?.x).isEqualTo(1f)
+        assertThat(entity[Transform.mapper]).isNotSameAs(transform)
+      }
+    }
+
+    describe("add component function") {
+      it("should add a component with a configuration and return it") {
+        val component = entity.addComponent<Transform>(engine) {
+          x = 3f
+        }
+        assertThat(Transform.mapper in entity).isTrue()
+        assertThat(entity[Transform.mapper]).isEqualTo(component)
+        assertThat(component.x).isEqualTo(3f)
+      }
+      it("should configure component exactly once") {
+        val variable: Int
+        entity.addComponent<Transform>(engine) {
+          variable = 42
+        }
+        assertThat(variable).isEqualTo(42)
       }
     }
   }

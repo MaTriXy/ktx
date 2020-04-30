@@ -3,10 +3,16 @@ package ktx.box2d
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.*
-import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.spy
+import com.nhaarman.mockitokotlin2.verify
 import org.junit.Assert.*
 import org.junit.Test
-import com.badlogic.gdx.utils.Array as GdxArray
+
+// TODO Kotlin Contracts in 1.3 do not support vararg methods such as polygon, chain or loop.
+// Once that compiler bug is fixed, their tests with init blocks should be extended to test the contracts.
+// https://youtrack.jetbrains.com/issue/KT-30497
 
 /**
  * Tests Box2D bodies utilities and [BodyDefinition] - KTX extension of Box2D BodyDef with [FixtureDefinition] factory
@@ -23,21 +29,39 @@ class BodiesTest : Box2DTest() {
     val fixtureDef = bodyDefinition.fixture(shape)
 
     assertSame(shape, fixtureDef.shape)
+    assertFalse(fixtureDef.disposeOfShape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    verify(shape, never()).dispose()
   }
 
   @Test
   fun `should construct FixtureDef with a custom shape with init block`() {
     val bodyDefinition = BodyDefinition()
     val shape = mock<Shape>()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.fixture(shape) {
       density = 0.5f
       assertSame(shape, it)
+      variable = 42
     }
 
     assertSame(shape, fixtureDef.shape)
+    assertFalse(fixtureDef.disposeOfShape)
     assertEquals(0.5f, fixtureDef.density)
+    assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertEquals(42, variable)
+  }
+
+  @Test
+  fun `should construct FixtureDef with a custom shape and mark it for disposing`() {
+    val bodyDefinition = BodyDefinition()
+    val shape = mock<Shape>()
+
+    val fixtureDef = bodyDefinition.fixture(shape, disposeOfShape = true)
+
+    assertSame(shape, fixtureDef.shape)
+    assertTrue(fixtureDef.disposeOfShape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
   }
 
@@ -53,14 +77,17 @@ class BodiesTest : Box2DTest() {
     assertEquals(2f, shape.position.x)
     assertEquals(3f, shape.position.y)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with a CircleShape with init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.circle(radius = 1f, position = Vector2(2f, 3f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is CircleShape)
@@ -70,6 +97,8 @@ class BodiesTest : Box2DTest() {
     assertEquals(3f, shape.position.y)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -90,11 +119,13 @@ class BodiesTest : Box2DTest() {
         Vector2(0f, 2f),
         Vector2(0f, 0f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with a PolygonShape set to a box with init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.box(
         width = 2f,
@@ -102,6 +133,7 @@ class BodiesTest : Box2DTest() {
         position = Vector2(1f, 1f),
         angle = 90f * MathUtils.degreesToRadians) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is PolygonShape)
@@ -114,6 +146,8 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixtureDef.density)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -127,14 +161,17 @@ class BodiesTest : Box2DTest() {
     // Box2D seems to change vertices order:
     assertPolygonEquals(arrayOf(Vector2(2f, 2f), Vector2(1f, 2f), Vector2(1f, 1f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with a PolygonShape with init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.polygon(vertices = floatArrayOf(1f, 1f, 2f, 2f, 1f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is PolygonShape)
@@ -143,6 +180,8 @@ class BodiesTest : Box2DTest() {
     assertPolygonEquals(arrayOf(Vector2(2f, 2f), Vector2(1f, 2f), Vector2(1f, 1f)), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -156,6 +195,7 @@ class BodiesTest : Box2DTest() {
     // Box2D seems to change vertices order:
     assertPolygonEquals(arrayOf(Vector2(2f, 2f), Vector2(1f, 2f), Vector2(1f, 1f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
@@ -172,6 +212,7 @@ class BodiesTest : Box2DTest() {
     assertPolygonEquals(arrayOf(Vector2(2f, 2f), Vector2(1f, 2f), Vector2(1f, 1f)), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
@@ -185,14 +226,17 @@ class BodiesTest : Box2DTest() {
     assertFalse(shape.isLooped)
     assertChainEquals(arrayOf(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with a ChainShape with init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.chain(vertices = floatArrayOf(1f, 1f, 2f, 2f, 1f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is ChainShape)
@@ -201,6 +245,8 @@ class BodiesTest : Box2DTest() {
     assertChainEquals(arrayOf(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f)), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -214,6 +260,7 @@ class BodiesTest : Box2DTest() {
     assertFalse(shape.isLooped)
     assertChainEquals(arrayOf(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
@@ -230,6 +277,7 @@ class BodiesTest : Box2DTest() {
     assertChainEquals(arrayOf(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f)), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
@@ -244,14 +292,17 @@ class BodiesTest : Box2DTest() {
     // Loop adds another vertex closing the chain:
     assertChainEquals(arrayOf(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f), Vector2(1f, 1f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with a looped ChainShape with init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.loop(vertices = floatArrayOf(1f, 1f, 2f, 2f, 1f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is ChainShape)
@@ -265,6 +316,8 @@ class BodiesTest : Box2DTest() {
         Vector2(1f, 1f)), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -283,6 +336,7 @@ class BodiesTest : Box2DTest() {
         Vector2(1f, 2f),
         Vector2(1f, 1f)), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
@@ -304,6 +358,7 @@ class BodiesTest : Box2DTest() {
         Vector2(1f, 1f)), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
@@ -316,14 +371,17 @@ class BodiesTest : Box2DTest() {
     val shape = fixtureDef.shape as EdgeShape
     assertEdgeEquals(Vector2(1f, 1f), Vector2(2f, 2f), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with an EdgeShape with init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.edge(from = Vector2(1f, 1f), to = Vector2(2f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is EdgeShape)
@@ -331,6 +389,8 @@ class BodiesTest : Box2DTest() {
     assertEdgeEquals(Vector2(1f, 1f), Vector2(2f, 2f), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -343,14 +403,17 @@ class BodiesTest : Box2DTest() {
     val shape = fixtureDef.shape as EdgeShape
     assertEdgeEquals(Vector2(1f, 2f), Vector2(3f, 4f), shape)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
   }
 
   @Test
   fun `should construct FixtureDef with an EdgeShape with float points and init block`() {
     val bodyDefinition = BodyDefinition()
+    val variable: Int
 
     val fixtureDef = bodyDefinition.edge(fromX = 1f, fromY = 2f, toX = 3f, toY = 4f) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixtureDef.shape is EdgeShape)
@@ -358,6 +421,8 @@ class BodiesTest : Box2DTest() {
     assertEdgeEquals(Vector2(1f, 2f), Vector2(3f, 4f), shape)
     assertEquals(0.5f, fixtureDef.density)
     assertTrue(fixtureDef in bodyDefinition.fixtureDefinitions)
+    assertTrue(fixtureDef.disposeOfShape)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -375,29 +440,47 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with a custom shape`() {
     val body = createBody()
-    val shape = CircleShape()
+    val shape = spy(CircleShape())
 
     val fixture = body.fixture(shape)
 
     assertTrue(fixture.shape is CircleShape)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    verify(shape, never()).dispose()
   }
 
   @Test
   fun `should construct Fixture with a custom shape with init block`() {
     val body = createBody()
-    val shape = CircleShape()
+    val shape = spy(CircleShape())
+    val variable: Int
 
     val fixture = body.fixture(shape) {
       density = 0.5f
       assertSame(shape, it)
+      variable = 42
     }
 
     assertTrue(fixture.shape is CircleShape)
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    verify(shape, never()).dispose()
+    assertEquals(42, variable)
+  }
+
+  @Test
+  fun `should construct Fixture with a custom shape and dispose of it`() {
+    val body = createBody()
+    val shape = spy(CircleShape())
+
+    val fixture = body.fixture(shape, disposeOfShape = true)
+
+    assertTrue(fixture.shape is CircleShape)
+    assertSame(body, fixture.body)
+    assertTrue(fixture in body.fixtureList)
+    verify(shape).dispose()
   }
 
   @Test
@@ -418,9 +501,11 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with a CircleShape with init block`() {
     val body = createBody()
+    val variable: Int
 
     val fixture = body.circle(radius = 1f, position = Vector2(2f, 3f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixture.shape is CircleShape)
@@ -431,6 +516,7 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -457,6 +543,7 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with a PolygonShape set to a box with init block`() {
     val body = createBody()
+    val variable: Int
 
     val fixture = body.box(
         width = 2f,
@@ -464,6 +551,7 @@ class BodiesTest : Box2DTest() {
         position = Vector2(1f, 1f),
         angle = 90f * MathUtils.degreesToRadians) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixture.shape is PolygonShape)
@@ -476,6 +564,7 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -495,9 +584,11 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with a PolygonShape with init block`() {
     val body = createBody()
+    val variable: Int
 
     val fixture = body.polygon(vertices = floatArrayOf(1f, 1f, 2f, 2f, 1f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixture.shape is PolygonShape)
@@ -507,6 +598,7 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -527,7 +619,7 @@ class BodiesTest : Box2DTest() {
   fun `should construct Fixture with a PolygonShape with Vector2 points and init block`() {
     val body = createBody()
 
-    val fixture = body.polygon(vertices = *arrayOf(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f))) {
+    val fixture = body.polygon(Vector2(1f, 1f), Vector2(2f, 2f), Vector2(1f, 2f)) {
       density = 0.5f
     }
 
@@ -557,9 +649,11 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with a ChainShape with init block`() {
     val body = createBody()
+    val variable: Int
 
     val fixture = body.chain(vertices = floatArrayOf(1f, 1f, 2f, 2f, 1f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixture.shape is ChainShape)
@@ -569,6 +663,7 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -680,9 +775,11 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with an EdgeShape with init block`() {
     val body = createBody()
+    val variable: Int
 
     val fixture = body.edge(from = Vector2(1f, 1f), to = Vector2(2f, 2f)) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixture.shape is EdgeShape)
@@ -691,6 +788,7 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    assertEquals(42, variable)
   }
 
   @Test
@@ -709,9 +807,11 @@ class BodiesTest : Box2DTest() {
   @Test
   fun `should construct Fixture with an EdgeShape with float points and init block`() {
     val body = createBody()
+    val variable: Int
 
     val fixture = body.edge(fromX = 1f, fromY = 2f, toX = 3f, toY = 4f) {
       density = 0.5f
+      variable = 42
     }
 
     assertTrue(fixture.shape is EdgeShape)
@@ -720,6 +820,7 @@ class BodiesTest : Box2DTest() {
     assertEquals(0.5f, fixture.density)
     assertSame(body, fixture.body)
     assertTrue(fixture in body.fixtureList)
+    assertEquals(42, variable)
   }
 
   @Test

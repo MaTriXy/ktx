@@ -1,3 +1,5 @@
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-style.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-style)
+
 # KTX: style builders
 
 Type-safe builders of official Scene2D widget styles.
@@ -24,6 +26,7 @@ can "guess" the type of variable, this can be shortened even further into `skin[
 used for all kinds of resources that can be stored in a `Skin`.
 
 `get` and `set` operator functions were added. `Skin` assets can now be accessed with brace operators:
+
 ```Kotlin
 val skin = Skin()
 skin["name"] = BitmapFont()
@@ -34,11 +37,60 @@ Note that both of these functions use reified generics, so they need to be able 
 context. For example, `val font = skin["name"]` would not compile, as the compiler would not be able to guess that
 instance of `BitmapFont` class is requested.
 
+Additional methods were also added to leverage type inference and skip `Class` parameters:
+
+```Kotlin
+val res: Resource? = skin.optional("name")
+val found = skin.has<Resource>("name")
+
+skin.add(resource, "name")
+skin += otherResource  // Uses the "default" name
+
+skin.remove<Resource>("name")
+
+val map: ObjectMap<String, Resource>? = skin.getAll()
+```
+
+These extension methods and operators include:
+* `get` (square bracket operator): returns a resource from the `Skin` or throws an exception.
+* `optional`: returns `null` or a resource from the `Skin` if it exists.
+* `set` (square bracket operator): assigns a resource to the `Skin`.
+* `add`: assigns a resource to the `Skin`.
+* `plusAssign` (`+=` operator): assigns a resource with the default style to the `Skin`.
+* `remove`: removes a resource from the `Skin`.
+* `has`: checks is the `Skin` contains a resource.
+* `getAll`: returns all resources of the selected type.
+
+Note that all `name` parameters can also be skipped to use the default style name, `"default"`.
+
 An extension method for every style of every Scene2D widget was added to `Skin`. Each method name matches `lowerCamelCase`
 name of the actor class. For example, the method used to create `ScrollPaneStyle` instances is named `scrollPane`.
 Signature of every extension method is pretty much the same - they consume 3 parameters: style name (defaults to
 `"default"`), optional name of extended style and an init block, which is usually passed as a Kotlin lambda. If a name
 of existing style name is given as the `extend` parameter, the new style will copy its properties.
+
+Currently supported extension methods include:
+
+`Skin` method | Style class
+:---: | ---
+`color` | `com.badlogic.gdx.graphics.Color`
+`button` | `com.badlogic.gdx.scenes.scene2d.ui.Button.ButtonStyle`
+`checkBox` | `com.badlogic.gdx.scenes.scene2d.ui.CheckBox.CheckBoxStyle`
+`imageButton` | `com.badlogic.gdx.scenes.scene2d.ui.ImageButton.ImageButtonStyle`
+`imageTextButton` | `com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton.ImageTextButtonStyle`
+`label` | `com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle`
+`list` | `com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle`
+`progressBar` | `com.badlogic.gdx.scenes.scene2d.ui.ProgressBar.ProgressBarStyle`
+`scrollPane` | `com.badlogic.gdx.scenes.scene2d.ui.ScrollPane.ScrollPaneStyle`
+`selectBox` | `com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle`
+`slider` | `com.badlogic.gdx.scenes.scene2d.ui.Slider.SliderStyle`
+`splitPaneStyle` | `com.badlogic.gdx.scenes.scene2d.ui.SplitPane.SplitPaneStyle`
+`textButton` | `com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle`
+`textField` | `com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle`
+`textTooltip` | `com.badlogic.gdx.scenes.scene2d.ui.TextTooltip.TextTooltipStyle`
+`touchpad` | `com.badlogic.gdx.scenes.scene2d.ui.Touchpad.TouchpadStyle`
+`tree` | `com.badlogic.gdx.scenes.scene2d.ui.Tree.TreeStyle`
+`window` | `com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle`
 
 ### Usage examples
 
@@ -60,6 +112,27 @@ import ktx.style.*
 val skin = skin(TextureAtlas(Gdx.files.internal("skin.atlas"))) {
   // Customize skin here.
   // Tip: ktx-assets could make the TextureAtlas loading much nicer.
+}
+```
+
+Extending an existing `Skin`:
+```Kotlin
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import ktx.style.*
+
+val skin = Skin()
+
+// All style builders are regular extension methods,
+// so they can be used directly on a `Skin` instance:
+skin.label {
+  // Define your label style here.
+}
+
+// Style definitions can also be wrapped in a block such as apply:
+skin.apply {
+  button {
+    // Define your button style here.
+  }
 }
 ```
 
@@ -217,13 +290,12 @@ enum class Drawables {
   buttonUp,
   buttonDown,
   buttonChecked; // Add all drawables from TextureAtlas.
-
-  operator fun invoke() = toString()
 }
 ```
 
-`invoke` operator allows to, well, _invoke_ enum instances `likeAnyFunction()`. Along with a static import, this brings
-our type-safe boilerplate to a pleasant minimum. While we're at it, it makes sense to list all styles with non-default
+Along with a static import, this brings our type-safe boilerplate to a pleasant minimum.
+
+While we're at it, it makes sense to list all styles with non-default
 name to provide validation when invoking actor constructors:
 
 ```Kotlin
@@ -236,6 +308,9 @@ enum class Buttons {
 }
 ```
 
+`invoke` operator above allows to, well, _invoke_ enum instances like any function to obtain their name -
+for example: `Buttons.toggle()`. 
+
 Let's sum it up and refactor the `ButtonStyle` definitions:
 
 ```Kotlin
@@ -245,70 +320,28 @@ import your.company.Drawables.*
 
 skin(myAtlas) {
   button {
-    up = it[buttonUp()]
-    down = it[buttonDown()]
-  }
+    up = it[buttonUp]
+    down = it[buttonDown]
   }
   button(Buttons.toggle(), extend = defaultStyle) {
-    checked = it[buttonChecked()]
-}
-```
-
-What's best about it, enums do not actually make your code _longer_, as they require the same exact amount of characters
-to write with static imports - while having the advantage of powerful code completion of your IDE of choice and validation
-at compile time. As long as you don't need to create assets at runtime with custom unpredictable IDs, we encourage you
-to store your drawables, fonts, colors and non-default styles names as enums to ensure complete safely at compile time.
-The advantage of using an `enum` over `object` with `String` properties is that you can easily extract a list of all
-values from an enum, while getting all fields from an object is not trivial.
-
-#### Migration guide
-
-Prior to introduction of Kotlin 1.1 features, style declarations could be nested:
-
-```Kotlin
-skin {
-  label {
-    label {
-      // This would not compile with the latest version.
-    }
+    checked = it[buttonChecked]
   }
 }
 ```
 
-Kotlin `@DslMarker` API allowed us to improve scoping issues and now implicit access to `Skin` in style building blocks
-is no longer possible. If you used `ktx-style` prior to `1.9.6-b2`, you need to explicitly access `Skin` resources and
-methods. The `Skin` instance is now also available as the lambda parameter of `skin` block (under `it`, unless renamed)
-to ease its access.
+What's best about it, enums do not necessarily make your code _longer_ or less readable - all while having the 
+advantage of powerful code completion of your IDE of choice and validation at compile time. As long as you 
+don't need to create assets at runtime with custom unpredictable IDs, we encourage you to store your drawables,
+fonts, colors and non-default styles names as enums to ensure complete safely at compile time.
 
-```Kotlin
-// Before 1.9.6-b2:
-skin(atlas) {
-  label {
-    font = getFont("arial")
-    fontColor = color("black", 0f, 0f, 0f)
-  }
-}
+The advantage of using an `enum` over a "standard" singleton (`object`) with `String` properties or `String` 
+constants is that you can easily extract a list of all values from an `enum`, while getting all fields from
+an object or constants from a package is not trivial.
 
-// After @DslMarker introduction:
-skin(atlas) {
-  label {
-    font = it["arial"]
-    fontColor = it.color("black", 0f, 0f, 0f)
-  }
-}
+#### Synergy
 
-// Idiomatic GUI style building - no nested declarations:
-skin(atlas) { skin ->
-  color("black", 0f, 0f, 0f)
-  label {
-    font = skin["arial"]
-    fontColor = skin["black"]
-  }
-}
-```
-
-It might look scary at first, but it actually improves the GUI style building safety (fixing scoping issues),
-discourages nested styles declarations and shortens access to most common resources with `it["assetName"]` syntax.
+[`ktx-assets`](../assets) or [`ktx-assets-async`](../assets-async) might prove useful for loading and management
+of `Skin` assets including `Textures` and `TextureAtlases`.
 
 ### Alternatives
 

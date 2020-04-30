@@ -24,6 +24,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldNotBe
 import io.kotlintest.mock.mock
+import ktx.style.StyleTest.TestEnum.TEST
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
@@ -63,6 +64,17 @@ class StyleTest {
   }
 
   @Test
+  fun `should configure skin exactly once`() {
+    val variable: Int
+
+    skin {
+      variable = 42
+    }
+
+    assertEquals(42, variable)
+  }
+
+  @Test
   fun `should create new skin with TextureAtlas`() {
     val skin = skin(TextureAtlas())
 
@@ -77,6 +89,17 @@ class StyleTest {
 
     skin shouldNotBe null
     skin.get("mock", String::class.java) shouldNotBe null
+  }
+
+  @Test
+  fun `should configure skin with TextureAtlas exactly once`() {
+    val variable: Int
+
+    skin(TextureAtlas()) {
+      variable = 42
+    }
+
+    assertEquals(42, variable)
   }
 
   @Test
@@ -100,13 +123,39 @@ class StyleTest {
   }
 
   @Test
-  fun `should extract resource with implicit reified type with infix method`() {
+  fun `should extract optional resource with default style name`() {
     val skin = Skin()
+
+    skin.add(defaultStyle, "Test.")
+
+    skin.optional<String>() shouldBe "Test."
+  }
+
+  @Test
+  fun `should extract optional resource`() {
+    val skin = Skin()
+
     skin.add("mock", "Test.")
 
-    val infix: String = skin get "mock"
+    skin.optional<String>("mock") shouldBe "Test."
+  }
 
-    infix shouldBe "Test."
+  @Test
+  fun `should extract optional resource and return null`() {
+    val skin = Skin()
+
+    skin.add("asset", "Test.")
+
+    skin.optional<Color>("mock") shouldBe null
+  }
+
+  @Test
+  fun `should extract resource with default style name`() {
+    val skin = Skin()
+
+    skin[defaultStyle] = "Asset."
+
+    skin.get<String>() shouldBe "Asset."
   }
 
   @Test
@@ -116,6 +165,35 @@ class StyleTest {
     skin["name"] = "Asset."
 
     skin.get<String>("name") shouldBe "Asset."
+  }
+
+  @Test
+  fun `should add resource with brace operator with enum name`() {
+    val skin = Skin()
+
+    skin[TEST] = "Test."
+
+    skin.get<String>("TEST") shouldBe "Test."
+  }
+
+  @Test
+  fun `should extract resource with brace operator with enum name`() {
+    val skin = Skin()
+    skin["TEST"] = "Test."
+
+    val resource: String = skin[TEST]
+
+    resource shouldBe "Test."
+  }
+
+  @Test
+  fun `should add and extract resource with brace operator with enum name`() {
+    val skin = Skin()
+
+    skin[TEST] = "Test."
+    val resource: String = skin[TEST]
+
+    resource shouldBe "Test."
   }
 
   @Test
@@ -141,6 +219,82 @@ class StyleTest {
     val style = skin.get<LabelStyle>("mock")
     assertSame(existing, style)
     style.fontColor shouldBe Color.BLACK
+  }
+
+  @Test
+  fun `should add resource with default style name`() {
+    val skin = Skin()
+
+    skin.add("Test.")
+
+    skin.get<String>() shouldBe "Test."
+  }
+
+  @Test
+  fun `should add resource with default style name with plusAssign`() {
+    val skin = Skin()
+
+    skin += "Test."
+
+    skin.get<String>() shouldBe "Test."
+  }
+
+  @Test
+  fun `should remove resource with default style name`() {
+    val skin = Skin()
+
+    skin.add(defaultStyle, "Test.")
+
+    skin.remove<String>()
+
+    skin.has(defaultStyle, String::class.java) shouldBe false
+  }
+
+  @Test
+  fun `should remove resource`() {
+    val skin = Skin()
+
+    skin.add("mock", "Test.")
+
+    skin.remove<String>("mock")
+
+    skin.has("mock", String::class.java) shouldBe false
+  }
+
+  @Test
+  fun `should check if resource is present`() {
+    val skin = Skin()
+
+    skin.add("mock", "Test.")
+
+    skin.has<String>("mock") shouldBe true
+    skin.has<String>("mock-2") shouldBe false
+  }
+
+  @Test
+  fun `should check if resource with default style name is present`() {
+    val skin = Skin()
+
+    skin.add(defaultStyle, "Test.")
+
+    skin.has<String>() shouldBe true
+  }
+
+  @Test
+  fun `should return a map of all resources of a type`() {
+    val skin = Skin()
+
+    skin.add("mock-1", "Test.")
+    skin.add("mock-2", "Test 2.")
+
+    skin.getAll<String>()!!.size shouldBe 2
+  }
+
+  @Test
+  fun `should return null if resource is not in skin`() {
+    val skin = Skin()
+
+    skin.getAll<String>() shouldBe null
   }
 
   @Test
@@ -356,7 +510,7 @@ class StyleTest {
       }
     }
 
-    val style: ScrollPaneStyle = skin get defaultStyle
+    val style: ScrollPaneStyle = skin.get()
     assertEquals(drawable, style.background)
   }
 
@@ -641,5 +795,10 @@ class StyleTest {
     val style = skin.get<WindowStyle>("new")
     assertEquals(drawable, style.background)
     assertEquals(drawable, style.stageBackground)
+  }
+
+  /** For [StyleTest] tests. */
+  internal enum class TestEnum {
+    TEST
   }
 }
