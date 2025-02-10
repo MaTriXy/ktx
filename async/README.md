@@ -1,17 +1,18 @@
-[![Kotlin](https://img.shields.io/badge/kotlin--coroutines-1.3.5-orange.svg)](http://kotlinlang.org/)
+[![Kotlin Coroutines](https://img.shields.io/badge/kotlin--coroutines-1.10.1-orange.svg)](http://kotlinlang.org/)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-async.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-async)
 
-# KTX: coroutines support and threading utilities
+# KTX: Coroutines support and parallelization utilities
 
 [Coroutines](https://kotlinlang.org/docs/reference/coroutines.html) support and general asynchronous operations
-utilities for LibGDX applications.
+utilities for libGDX applications.
 
 ### Why?
 
-Coroutines-based APIs greatly simplify asynchronous operations and allow to avoid so-called callback hell. Some LibGDX
-APIs - like the `Timer` - were not written with functional expressions in mind (often using abstract classes) and they
-are tedious to call with vanilla Kotlin. This module aims to hide asynchronous code complexity with coroutines, as well
-as improve existing asynchronous APIs to feel more like Kotlin.
+Coroutines-based APIs greatly simplify asynchronous operations and avoid so-called callback hell. Some libGDX APIs -
+like the `Timer` - were not written with functional expressions in mind, often using abstract classes instead of
+functional interfaces. Additionally, they are often tedious to call from within Kotlin. This module aims to hide
+asynchronous code complexity with coroutines, as well as to improve existing asynchronous APIs with idiomatic Kotlin
+extensions.
 
 ### Guide
 
@@ -19,8 +20,14 @@ as improve existing asynchronous APIs to feel more like Kotlin.
 
 Before using `ktx-async`, make sure to include the Kotlin coroutines library in your Gradle script:
 
-```Groovy
-compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: coroutinesVersion
+```groovy
+// Groovy DSL:
+api group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: coroutinesVersion
+```
+
+```kotlin
+// Kotlin DSL:
+api(group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version = coroutinesVersion)
 ```
 
 The `coroutinesVersion` _must_ match the coroutines version that the `ktx-async` library was compiled against -
@@ -28,7 +35,7 @@ otherwise it might cause runtime or compilation errors.
 
 Before Kotlin 1.3, coroutines were an experimental feature and required the following Gradle configuration:
 
-```Groovy
+```groovy
 kotlin {
   experimental {
     coroutines 'enable'
@@ -38,13 +45,25 @@ kotlin {
 
 If you are using a recent version of Kotlin and `ktx-async`, this declaration is no longer required.
 
+##### Troubleshooting
+
+If using any coroutines-related classes results in a `java.lang.NoClassDefFoundError` exception, make sure that
+the backend module correctly picks up transitive dependencies of the core module. In particular, this error can be
+seen on iOS with RoboVM if `kotlinx-coroutines-core` or `ktx-async` are included as `implementation` dependencies
+in the core Gradle module instead of `api`.
+
+`ktx-async` was tested on desktop, Android and iOS, and should work on every major platform. If you encounter
+any issues with launching the coroutines, do not hesitate to create an [issue](https://github.com/libktx/ktx/issues).
+
+> Note that Kotlin coroutines are not supported by the unofficial TeaVM web platform.
+
 #### Coroutines
 
 _Please refer to Kotlin coroutines documentation or tutorials if you are having trouble with this section._
 
 `KtxAsync` is the default scope you should use instead of the `GlobalScope` in your KTX applications. By default, it
 will execute tasks on the main rendering thread. However, if you want to perform some actions asynchronously on
-different threads, you can use `AsyncExecutorDispatcher` that uses LibGDX cross-platform `AsyncExecutor` to execute
+different threads, you can use `AsyncExecutorDispatcher` that uses libGDX cross-platform `AsyncExecutor` to execute
 the tasks.
 
 Before using `KtxAsync` scope, make sure to call `KtxAsync.initiate()` on the main rendering thread. This is not
@@ -56,7 +75,7 @@ KTX providers 2 main implementations of coroutine dispatchers:
 * `RenderingThreadDispatcher`: executes tasks on the main rendering thread. Available via `Dispatchers.KTX`. Default
     dispatcher used by the `KtxAsync` scope internally.
     * `RenderingScope` factory method allows to define a `CoroutineScope` using the `RenderingThreadDispatcher`.
-* `AsyncExecutorDispatcher`: wraps LibGDX `AsyncExecutor` to execute the tasks. Can be initiated in the following ways:
+* `AsyncExecutorDispatcher`: wraps libGDX `AsyncExecutor` to execute the tasks. Can be initiated in the following ways:
     * `newSingleThreadAsyncContext()` factory method: creates an `AsyncExecutor` with a single thread.
     * `newAsyncContext(threads)` factory method: creates an `AsyncExecutor` with the given amount of threads.
     * `AsyncExecutorDispatcher` constructor: allows to wrap an existing `AsyncExecutor`. Make sure to set the `threads`
@@ -67,7 +86,7 @@ Additionally, `ktx-async` provides the following utility methods:
 * `onRenderingThread`: suspends the coroutine to execute a task on the main rendering thread and return its result.
     Should be used if you dispatch a coroutine with a non-rendering thread dispatcher and need to execute some task
     on the main rendering thread. Syntax sugar for quick context switch.
-* `isOnRenderingThread`: allows to check if the coroutine is being executed on the main rendering thread.
+* `isOnRenderingThread`: checks if the coroutine is being executed on the main rendering thread.
 * `skipFrame`: attempts to suspend the coroutine for a single `render` frame of the application. The method is
     guaranteed to skip _at least one_ frame, but - depending on the thread it was invoked on - it might skip multiple
     frames. Do not rely on this method for precise frame measurements.
@@ -79,8 +98,8 @@ to launch coroutines in the rendering thread and that has a supervisor job so th
 
 Other asynchronous operations utilities include:
 
-- `schedule` and `interval` functions were added to simplify LibGDX `Timer` API. Normally it requires the user to extend
-    an abstract class - these utility functions allow to use idiomatic Kotlin lambdas syntax.
+- `schedule` and `interval` functions were added to simplify libGDX `Timer` API. Normally it requires the user to extend
+    an abstract class - these utility functions allow using idiomatic Kotlin lambdas syntax.
 - `HttpRequestResult` is a thread-safe wrapper of `HttpResponse` that reads and caches HTTP response content. These
     objects are returned by the coroutines-based HTTP requests API.
 
@@ -88,7 +107,7 @@ Other asynchronous operations utilities include:
 
 Initiating coroutines context upon application creation:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.ApplicationAdapter
 import ktx.async.KtxAsync
 
@@ -101,7 +120,7 @@ class MyApp : ApplicationAdapter() {
 
 Starting a simple coroutine on the main rendering thread:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.ApplicationAdapter
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
@@ -115,7 +134,7 @@ fun myFirstCoroutine() {
 
 Starting a coroutine with a non-blocking suspension lasting 2 seconds:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
@@ -133,7 +152,7 @@ fun coroutineWithDelay() {
 
 Starting a coroutine that skips a single rendering frame by suspension and resumes on the next render call:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.ApplicationAdapter
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
@@ -157,9 +176,9 @@ class MyApp : ApplicationAdapter() {
 }
 ```
 
-Using `AsyncExecutor` to perform tasks outside of the rendering thread:
+Using `AsyncExecutor` to perform tasks outside the rendering thread:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ktx.async.KtxAsync
@@ -179,7 +198,7 @@ fun asyncTask() {
 
 Using `AsyncExecutor` with multiple threads to perform sophisticated multithreaded mathematical operations:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
@@ -197,7 +216,7 @@ fun multithreading() {
 
 Manually switching between coroutine contexts:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -221,7 +240,7 @@ fun backAndForth() {
 
 Using utility methods to check and switch the threads:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.launch
 import ktx.async.*
 
@@ -237,9 +256,9 @@ fun threadSwitch() {
 }
 ```
 
-Initiating `AsyncExecutorDispatchers` to perform asynchronous operations outside of the rendering thread:
+Initiating `AsyncExecutorDispatchers` to perform asynchronous operations outside the rendering thread:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.utils.async.AsyncExecutor
 import ktx.async.AsyncExecutorDispatcher
 import ktx.async.newAsyncContext
@@ -262,7 +281,7 @@ val fromExistingExecutor = AsyncExecutorDispatcher(executor, threads = 2)
 Starting a coroutine, which performs an HTTP request and resumes on the main rendering thread after
 receiving the response (_requires internet connection to run_):
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
 import ktx.async.httpRequest
@@ -279,7 +298,7 @@ ${response.contentAsString}""")
 
 Performing an asynchronous HTTP request via `AsyncExecutor`:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
@@ -297,7 +316,7 @@ fun httpAsync() {
 
 Cancelling a coroutine:
 
-```Kotlin
+```kotlin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ktx.async.KtxAsync
@@ -313,7 +332,7 @@ fun withCancel() {
 
 Creating a coroutine scope to confine jobs' lives to a specific class:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.Screen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -322,7 +341,7 @@ import ktx.async.httpRequest
 import ktx.async.RenderingScope
 
 class MyScreen: Screen, CoroutineScope by RenderingScope() {
-  // Implement your application screen here. 
+  // Implement your application screen here.
 
   override fun hide() {
     // Cancels any running coroutines when leaving the screen:
@@ -353,7 +372,7 @@ val myScope = MyScope(newSingleThreadAsyncContext())
 
 Scheduling a task executed on the main rendering thread after one second:
 
-```Kotlin
+```kotlin
 import ktx.async.schedule
 
 val taskCallback = schedule(delaySeconds = 1f) {
@@ -363,7 +382,7 @@ val taskCallback = schedule(delaySeconds = 1f) {
 
 Scheduling a task repeatedly executed on the main rendering thread after one second:
 
-```Kotlin
+```kotlin
 import ktx.async.interval
 
 val taskCallback = interval(delaySeconds = 1f, intervalSeconds = 1f) {
@@ -374,10 +393,10 @@ val taskCallback = interval(delaySeconds = 1f, intervalSeconds = 1f) {
 ### Alternatives
 
 - Standard Kotlin coroutines libraries might be used along with custom thread pools. They do not offer the same level
-of compatibility with existing LibGDX APIs though.
+of compatibility with existing libGDX APIs though.
 
 #### Additional documentation
 
-- [LibGDX threading article.](https://github.com/libgdx/libgdx/wiki/Threading)
+- [Official libGDX threading article.](https://libgdx.com/wiki/app/threading)
 - [Coroutines language reference.](https://kotlinlang.org/docs/reference/coroutines.html)
 - [Coroutines repository.](https://github.com/Kotlin/kotlin-coroutines)

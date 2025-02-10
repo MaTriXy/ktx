@@ -5,17 +5,22 @@ import com.badlogic.gdx.assets.AssetLoaderParameters
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.assets.loaders.AssetLoader
 import com.badlogic.gdx.assets.loaders.AsynchronousAssetLoader
+import com.badlogic.gdx.assets.loaders.FileHandleResolver
 import com.badlogic.gdx.assets.loaders.SynchronousAssetLoader
 import com.badlogic.gdx.assets.loaders.resolvers.AbsoluteFileHandleResolver
 import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.PolygonRegion
+import com.badlogic.gdx.graphics.g2d.PolygonRegionLoader
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.Array as GdxArray
 
 /**
  * Stores [AssetLoader] instances mapped by loaded asset type. Internal [AssetStorage] utility.
  *
- * Implementation note: LibGDX loaders are not thread-safe. Instead, they assume that only a single asset is loaded
- * at a time and use internal, unsynchronized fields to store temporary variables like the dependencies. To avoid
+ * Implementation note: libGDX loaders are not thread-safe. Instead, they assume that only a single asset is loaded
+ * at a time and use internal, non-synchronized fields to store temporary variables like the dependencies. To avoid
  * threading issues, we use a separate loader for each loaded asset instead of singleton instances - hence
  * the functional loader providers.
  */
@@ -26,7 +31,10 @@ internal class AssetLoaderStorage {
    * Provides a [Loader] for the given asset [type]. Optionally, file [path] can be given,
    * as depending on the file suffix, a different loader might be used for the same asset type.
    */
-  fun <Asset> getLoader(type: Class<Asset>, path: String? = null): Loader<Asset>? {
+  fun <Asset> getLoader(
+    type: Class<Asset>,
+    path: String? = null,
+  ): Loader<Asset>? {
     @Suppress("UNCHECKED_CAST")
     val loadersForType = loaders[type] as AssetLoaderContainer<Asset>? ?: return null
     if (path == null || loadersForType.loadersBySuffix.size == 0) {
@@ -50,7 +58,11 @@ internal class AssetLoaderStorage {
    * associated with the given asset [type]. Optionally, a [suffix] can be given
    * to a associate the loader with specific file paths.
    */
-  fun <Asset> setLoaderProvider(type: Class<Asset>, suffix: String? = null, loaderProvider: () -> Loader<Asset>) {
+  fun <Asset> setLoaderProvider(
+    type: Class<Asset>,
+    suffix: String? = null,
+    loaderProvider: () -> Loader<Asset>,
+  ) {
     validate(loaderProvider)
     getOrCreateLoadersContainer(type).apply {
       if (suffix.isNullOrEmpty()) {
@@ -93,7 +105,7 @@ internal class AssetLoaderStorage {
   }
 }
 
-// Workarounds for LibGDX generics API.
+// Workarounds for libGDX generics API.
 
 /** [AssetLoader] with improved generics. */
 typealias Loader<Asset> = AssetLoader<Asset, out AssetLoaderParameters<Asset>>
@@ -116,19 +128,23 @@ private val <Asset> AssetDescriptor<Asset>.parameters: AssetLoaderParameters<Ass
  * with [AssetDescriptor] instances. Null if here are no dependencies.
  */
 fun Loader<*>.getDependencies(assetDescriptor: AssetDescriptor<*>): GdxArray<AssetDescriptor<*>> =
-    @Suppress("UNCHECKED_CAST")
-    (this as AssetLoader<*, AssetLoaderParameters<*>>)
-        .getDependencies(assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters) ?: GdxArray(0)
+  @Suppress("UNCHECKED_CAST")
+  (this as AssetLoader<*, AssetLoaderParameters<*>>)
+    .getDependencies(assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
+    ?: GdxArray(0)
 
 /**
  * Allows to use [SynchronousAssetLoader.load] method with [AssetDescriptor].
  * [assetManager] provides asset dependencies for the loader.
  * [assetDescriptor] contains asset data. Returns fully loaded [Asset] instance.
  */
-fun <Asset> SynchronousLoader<Asset>.load(assetManager: AssetManager, assetDescriptor: AssetDescriptor<Asset>): Asset =
-    @Suppress("UNCHECKED_CAST")
-    (this as SynchronousAssetLoader<Asset, AssetLoaderParameters<Asset>>)
-        .load(assetManager, assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
+fun <Asset> SynchronousLoader<Asset>.load(
+  assetManager: AssetManager,
+  assetDescriptor: AssetDescriptor<Asset>,
+): Asset =
+  @Suppress("UNCHECKED_CAST")
+  (this as SynchronousAssetLoader<Asset, AssetLoaderParameters<Asset>>)
+    .load(assetManager, assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
 
 /**
  * Allows to use [AsynchronousAssetLoader.loadAsync] method with [AssetDescriptor].
@@ -136,10 +152,13 @@ fun <Asset> SynchronousLoader<Asset>.load(assetManager: AssetManager, assetDescr
  * [assetManager] provides asset dependencies for the loader.
  * [assetDescriptor] contains asset data.
  */
-fun <Asset> AsynchronousLoader<Asset>.loadAsync(assetManager: AssetManager, assetDescriptor: AssetDescriptor<Asset>) =
-    @Suppress("UNCHECKED_CAST")
-    (this as AsynchronousAssetLoader<Asset, AssetLoaderParameters<Asset>>)
-        .loadAsync(assetManager, assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
+fun <Asset> AsynchronousLoader<Asset>.loadAsync(
+  assetManager: AssetManager,
+  assetDescriptor: AssetDescriptor<Asset>,
+) =
+  @Suppress("UNCHECKED_CAST")
+  (this as AsynchronousAssetLoader<Asset, AssetLoaderParameters<Asset>>)
+    .loadAsync(assetManager, assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
 
 /**
  * Allows to use [AsynchronousAssetLoader.loadSync] method with [AssetDescriptor].
@@ -147,19 +166,44 @@ fun <Asset> AsynchronousLoader<Asset>.loadAsync(assetManager: AssetManager, asse
  * [assetManager] provides asset dependencies for the loader.
  * [assetDescriptor] contains asset data. Returns fully loaded [Asset] instance.
  */
-fun <Asset> AsynchronousLoader<Asset>.loadSync(assetManager: AssetManager, assetDescriptor: AssetDescriptor<Asset>): Asset =
-    @Suppress("UNCHECKED_CAST")
-    (this as AsynchronousAssetLoader<Asset, AssetLoaderParameters<Asset>>)
-        .loadSync(assetManager, assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
+fun <Asset> AsynchronousLoader<Asset>.loadSync(
+  assetManager: AssetManager,
+  assetDescriptor: AssetDescriptor<Asset>,
+): Asset =
+  @Suppress("UNCHECKED_CAST")
+  (this as AsynchronousAssetLoader<Asset, AssetLoaderParameters<Asset>>)
+    .loadSync(assetManager, assetDescriptor.fileName, assetDescriptor.file, assetDescriptor.parameters)
 
-/** Required for [ManualLoader] by LibGDX API. */
+/** Required for [ManualLoader] by libGDX API. */
 internal class ManualLoadingParameters : AssetLoaderParameters<Any>()
 
 /** Mocks [AssetLoader] API for assets manually added to the [AssetStorage]. See [AssetStorage.add]. */
 internal object ManualLoader : AssetLoader<Any, ManualLoadingParameters>(AbsoluteFileHandleResolver()) {
   private val emptyDependencies = GdxArray<AssetDescriptor<Any>>(0)
+
   override fun getDependencies(
-    fileName: String?, file: FileHandle?,
-    parameter: ManualLoadingParameters?
+    fileName: String?,
+    file: FileHandle?,
+    parameter: ManualLoadingParameters?,
   ): GdxArray<AssetDescriptor<Any>> = emptyDependencies
+}
+
+/**
+ * Specialized [PolygonRegionLoader] extension compatible with [AssetStorage].
+ * Tested via the [AssetStorage] test suite.
+ */
+internal class AssetStoragePolygonRegionLoader(
+  fileHandleResolver: FileHandleResolver,
+) : PolygonRegionLoader(fileHandleResolver) {
+  override fun load(
+    manager: AssetManager,
+    fileName: String,
+    file: FileHandle,
+    parameter: PolygonRegionParameters?,
+  ): PolygonRegion {
+    val assetStorage = (manager as AssetManagerWrapper).assetStorage
+    val texturePath = assetStorage.getDependencies<PolygonRegion>(fileName).first().path
+    val texture = assetStorage.get<Texture>(texturePath)
+    return load(TextureRegion(texture), file)
+  }
 }

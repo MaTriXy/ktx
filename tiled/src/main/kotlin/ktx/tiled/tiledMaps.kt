@@ -4,6 +4,7 @@ import com.badlogic.gdx.maps.MapLayer
 import com.badlogic.gdx.maps.MapObject
 import com.badlogic.gdx.maps.MapProperties
 import com.badlogic.gdx.maps.tiled.TiledMap
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer
 
 /**
  * Extension method to directly access the [MapProperties] of a [TiledMap]. If the property
@@ -12,7 +13,8 @@ import com.badlogic.gdx.maps.tiled.TiledMap
  * @return value of the property.
  * @throws MissingPropertyException If the property is not defined.
  */
-inline fun <reified T> TiledMap.property(key: String): T = properties[key, T::class.java]
+inline fun <reified T> TiledMap.property(key: String): T =
+  properties[key, T::class.java]
     ?: throw MissingPropertyException("Property $key does not exist.")
 
 /**
@@ -23,7 +25,10 @@ inline fun <reified T> TiledMap.property(key: String): T = properties[key, T::cl
  * @param defaultValue default value in case the property is missing.
  * @return value of the property or defaultValue if property is missing.
  */
-inline fun <reified T> TiledMap.property(key: String, defaultValue: T): T = properties[key, defaultValue, T::class.java]
+inline fun <reified T> TiledMap.property(
+  key: String,
+  defaultValue: T,
+): T = properties[key, defaultValue, T::class.java]
 
 /**
  * Extension method to directly access the [MapProperties] of a [TiledMap]. If the property
@@ -138,7 +143,8 @@ operator fun TiledMap.contains(layerName: String) = layers[layerName] != null
  * @param layerName name of [MapLayer]
  * @throws MissingLayerException If the layer does not exist
  */
-fun TiledMap.layer(layerName: String) = layers[layerName]
+fun TiledMap.layer(layerName: String) =
+  layers[layerName]
     ?: throw MissingLayerException("Layer $layerName does not exist for map")
 
 /**
@@ -148,8 +154,26 @@ fun TiledMap.layer(layerName: String) = layers[layerName]
  * @param layerName name of [MapLayer]
  * @param action action to execute per [MapObject] of the [MapLayer]
  */
-inline fun TiledMap.forEachMapObject(layerName: String, action: (MapObject) -> Unit) {
+inline fun TiledMap.forEachMapObject(
+  layerName: String,
+  action: (MapObject) -> Unit,
+) {
   layers[layerName]?.objects?.forEach {
     action(it)
+  }
+}
+
+/**
+ * Extension method to run an [action] on a specific type of [layers][MapLayer] of the [TiledMap]. The lambda
+ * takes the matching [MapLayer] as a parameter.
+ *
+ * The class matching is an exact match meaning that a given subclass like [TiledMapTileLayer] will not match
+ * for the argument [MapLayer].
+ */
+inline fun <reified T : MapLayer> TiledMap.forEachLayer(action: (T) -> Unit) {
+  this.layers.forEach {
+    if (it::class == T::class) {
+      action(it as T)
+    }
   }
 }

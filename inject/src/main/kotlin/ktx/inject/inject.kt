@@ -2,13 +2,15 @@ package ktx.inject
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.Disposable
+import ktx.reflect.Reflection
+import ktx.reflect.reflect
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.reflect.KClass
 
 /**
- * Handles dependency injection mechanism. Allows to bind selected classes with their providers.
+ * Handles dependency injection mechanism. Allows binding selected classes with their providers.
  *
  * Note that [Context] instances are not considered fully thread-safe - while it is _usually_ safe to access a fully
  * built context from within multiple threads, you should override [createProvidersMap] method and return a thread-safe
@@ -77,7 +79,10 @@ open class Context : Disposable {
    * @see bind
    * @see bindSingleton
    */
-  open fun setProvider(forClass: Class<*>, provider: () -> Any) {
+  open fun setProvider(
+    forClass: Class<*>,
+    provider: () -> Any,
+  ) {
     forClass !in providers || throw InjectionException("Provider already defined for class: $forClass")
     providers[forClass] = provider
   }
@@ -138,13 +143,52 @@ open class Context : Disposable {
   inline fun <reified Type : Any> bindSingleton(provider: () -> Type) = bind(SingletonProvider(provider()))
 
   /**
+   * Automatically registers a provider for [Type] that will use reflection to create a new instance each
+   * time it is requested. All required constructor parameters will be extracted from [Context]. Note that
+   * the provider might throw [InjectionException] if any of the dependencies are missing, or
+   * [com.badlogic.gdx.utils.reflect.ReflectionException] when unable to construct an instance.
+   * @param Type reified type of the provided instances. This class must have a single constructor.
+   */
+  @Reflection
+  inline fun <reified Type : Any> bind() = bind<Type> { newInstanceOf() }
+
+  /**
+   * Automatically creates and registers an instance of [Type] with reflection. All required constructor parameters
+   * will be extracted from [Context] and must be present before calling this method.
+   * @param Type reified type of the provided instance. This class must have a single constructor.
+   * @return the constructed [Type] instance with injected dependencies.
+   * @throws InjectionException if any of the dependencies are missing.
+   * @throws com.badlogic.gdx.utils.reflect.ReflectionException when unable to construct an instance.
+   */
+  @Reflection
+  inline fun <reified Type : Any> bindSingleton(): Type = newInstanceOf<Type>().apply(::bindSingleton)
+
+  /**
+   * Constructs an instance of [Type] using reflection. All required constructor parameters will be extracted from
+   * [Context] and must be present before calling this method.
+   * @param Type reified type of the constructed instance. This class must have a single constructor.
+   * @return a new instance of [Type] with injected dependencies.
+   * @throws InjectionException if any of the dependencies are missing.
+   * @throws com.badlogic.gdx.utils.reflect.ReflectionException when unable to construct an instance.
+   */
+  @Reflection
+  inline fun <reified Type : Any> newInstanceOf(): Type {
+    val constructor = reflect<Type>().constructor
+    val parameters = constructor.parameterTypes.map { getProvider(it).invoke() }.toTypedArray()
+    return constructor.newInstance(*parameters) as Type
+  }
+
+  /**
    * Allows to bind a provider to multiple classes in hierarchy of the provided instances class.
    * @param to list of interfaces and classes in the class hierarchy of the objects provided by the provider. Any time
    *    any of the passed classes will be requested for injection, the selected provider will be invoked.
    * @param provider provides instances of classes compatible with the passed types.
    * @throws InjectionException if provider for any of the selected types is already defined.
    */
-  fun <Type : Any> bind(vararg to: KClass<out Type>, provider: () -> Type) = to.forEach {
+  fun <Type : Any> bind(
+    vararg to: KClass<out Type>,
+    provider: () -> Type,
+  ) = to.forEach {
     setProvider(it.java, provider)
   }
 
@@ -155,8 +199,10 @@ open class Context : Disposable {
    * @param singleton instance of class compatible with the passed types.
    * @throws InjectionException if provider for any of the selected types is already defined.
    */
-  fun <Type : Any> bindSingleton(vararg to: KClass<out Type>, singleton: Type)
-      = bind(*to, provider = SingletonProvider(singleton))
+  fun <Type : Any> bindSingleton(
+    vararg to: KClass<out Type>,
+    singleton: Type,
+  ) = bind(*to, provider = SingletonProvider(singleton))
 
   /**
    * Allows to bind the result of the provider to multiple classes in its hierarchy.
@@ -165,8 +211,10 @@ open class Context : Disposable {
    * @param provider inlined. Immediately invoked a single time. Its result will be registered as a singleton.
    * @throws InjectionException if provider for any of the selected types is already defined.
    */
-  inline fun <Type : Any> bindSingleton(vararg to: KClass<out Type>, provider: () -> Type)
-      = bind(*to, provider = SingletonProvider(provider()))
+  inline fun <Type : Any> bindSingleton(
+    vararg to: KClass<out Type>,
+    provider: () -> Type,
+  ) = bind(*to, provider = SingletonProvider(provider()))
 
   /**
    * Removes all user-defined providers and singletons from the context. [Context] itselfs will still be present and
@@ -202,7 +250,6 @@ open class Context : Disposable {
   }
 }
 
-
 /**
  * Allows to register new components in the context with builder-like DSL.
  * @param init will be invoked on this context.
@@ -222,7 +269,10 @@ inline fun Context.register(init: Context.() -> Unit): Context {
  * @param singleton will be always provided by this provider.
  * @see Disposable
  */
-data class SingletonProvider<out Type : Any>(val singleton: Type) : Disposable, () -> Type {
+data class SingletonProvider<out Type : Any>(
+  val singleton: Type,
+) : Disposable,
+  () -> Type {
   /** @return [singleton]. */
   override operator fun invoke(): Type = singleton
 
@@ -235,4 +285,7 @@ data class SingletonProvider<out Type : Any>(val singleton: Type) : Disposable, 
 /**
  * Thrown in case of any problems with the dependency injection mechanism.
  */
-class InjectionException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+class InjectionException(
+  message: String,
+  cause: Throwable? = null,
+) : RuntimeException(message, cause)

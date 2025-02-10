@@ -100,10 +100,11 @@ fun ClosedRange<Float>.random() = MathUtils.random.nextFloat() * (endInclusive -
  */
 fun ClosedRange<Float>.randomGaussian(clamped: Boolean = true) =
   ((MathUtils.random.nextGaussian() / 6.0 + 0.5).toFloat() * (endInclusive - start) + start).let {
-    if (clamped)
+    if (clamped) {
       it.coerceIn(this)
-    else
+    } else {
       it
+    }
   }
 
 /**
@@ -126,8 +127,10 @@ fun ClosedRange<Float>.randomTriangular() = MathUtils.randomTriangular(start, en
  * there is no error checking.
  */
 fun ClosedRange<Float>.randomTriangular(normalizedMode: Float): Float =
-  MathUtils.randomTriangular(start, endInclusive,
-    normalizedMode * (endInclusive - start) + start
+  MathUtils.randomTriangular(
+    start,
+    endInclusive,
+    normalizedMode * (endInclusive - start) + start,
   )
 
 /**
@@ -137,8 +140,7 @@ fun ClosedRange<Float>.randomTriangular(normalizedMode: Float): Float =
  * [ClosedRange.endInclusive].
  * @return The interpolated value.
  */
-fun ClosedRange<Float>.lerp(progress: Float): Float =
-  progress * (endInclusive - start) + start
+fun ClosedRange<Float>.lerp(progress: Float): Float = progress * (endInclusive - start) + start
 
 /**
  * Interpolate between the start and end of this range.
@@ -148,5 +150,7 @@ fun ClosedRange<Float>.lerp(progress: Float): Float =
  * @param interpolation The function to interpolate with.
  * @return The interpolated value.
  */
-fun ClosedRange<Float>.interpolate(progress: Float, interpolation: Interpolation): Float =
-  interpolation.apply(progress) * (endInclusive - start) + start
+fun ClosedRange<Float>.interpolate(
+  progress: Float,
+  interpolation: Interpolation,
+): Float = interpolation.apply(progress) * (endInclusive - start) + start

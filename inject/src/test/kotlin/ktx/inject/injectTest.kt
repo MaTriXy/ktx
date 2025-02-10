@@ -3,10 +3,24 @@ package ktx.inject
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.nhaarman.mockitokotlin2.*
+import com.badlogic.gdx.utils.reflect.ReflectionException
+import io.kotlintest.matchers.shouldThrow
+import ktx.reflect.Reflection
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
+import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import java.util.Random
 
 /**
@@ -312,9 +326,10 @@ class DependencyInjectionTest {
   @Test
   fun `should dispose of Disposable components with error handling`() {
     Gdx.app = mock()
-    val singleton = mock<Disposable> {
-      on(it.dispose()) doThrow GdxRuntimeException("Expected.")
-    }
+    val singleton =
+      mock<Disposable> {
+        on(it.dispose()) doThrow GdxRuntimeException("Expected.")
+      }
     context.bindSingleton(singleton)
     val provider = mock<DisposableProvider<Random>>()
     context.bind(provider)
@@ -334,7 +349,9 @@ class DependencyInjectionTest {
   }
 
   /** Implements both [Disposable] and provider interfaces. */
-  interface DisposableProvider<out Type> : Disposable, () -> Type
+  interface DisposableProvider<out Type> :
+    Disposable,
+    () -> Type
 }
 
 /**
@@ -360,11 +377,131 @@ class SingletonProviderTest {
 
   @Test(expected = GdxRuntimeException::class)
   fun `should rethrow Disposable exceptions`() {
-    val singleton = mock<Disposable> {
-      on(it.dispose()) doThrow GdxRuntimeException("Expected.")
-    }
+    val singleton =
+      mock<Disposable> {
+        on(it.dispose()) doThrow GdxRuntimeException("Expected.")
+      }
     val singletonProvider = SingletonProvider(singleton)
 
     singletonProvider.dispose()
+  }
+}
+
+@OptIn(Reflection::class)
+class ReflectionInjectionTest {
+  class Dependency
+
+  class Dependant(
+    val dependency: Dependency,
+  )
+
+  class InvalidClass private constructor()
+
+  @Suppress("unused", "UNUSED_PARAMETER")
+  class MultipleConstructors() {
+    constructor(a: String) : this()
+  }
+
+  @Test
+  fun `should create instance via reflection`() {
+    // Given:
+    val context = Context()
+
+    // When:
+    val instance = context.newInstanceOf<Dependency>()
+
+    // Then:
+    assertNotNull(instance)
+  }
+
+  @Test
+  fun `should create instance with constructor parameters via reflection`() {
+    // Given:
+    val context = Context()
+    val dependency = Dependency()
+    context.bindSingleton(dependency)
+
+    // When:
+    val instance = context.newInstanceOf<Dependant>()
+
+    // Then:
+    assertNotNull(instance)
+    assertSame(dependency, instance.dependency)
+  }
+
+  @Test
+  fun `should fail to create instance with missing dependencies via reflection`() {
+    // Given:
+    val context = Context()
+
+    // Expect:
+    shouldThrow<InjectionException> {
+      context.newInstanceOf<Dependant>()
+    }
+  }
+
+  @Test
+  fun `should fail to create instance of class with no public constructors via reflection`() {
+    // Given:
+    val context = Context()
+
+    // Expect:
+    shouldThrow<ReflectionException> {
+      context.newInstanceOf<InvalidClass>()
+    }
+  }
+
+  @Test
+  fun `should fail to create instance of class with multiple public constructors via reflection`() {
+    // Given:
+    val context = Context()
+
+    // Expect:
+    shouldThrow<ReflectionException> {
+      context.newInstanceOf<MultipleConstructors>()
+    }
+  }
+
+  @Test
+  fun `should bind a provider`() {
+    // Given:
+    val context = Context()
+    val dependency = Dependency()
+    context.bindSingleton(dependency)
+
+    // When:
+    context.bind<Dependant>()
+
+    // Then:
+    assertNotNull(context.inject<Dependant>())
+    assertSame(dependency, context.inject<Dependant>().dependency)
+  }
+
+  @Test
+  fun `should create a new instance via reflection on every provider call`() {
+    // Given:
+    val context = Context()
+
+    // When:
+    context.bind<Dependency>()
+
+    // Then:
+    assertNotSame(context.inject<Dependency>(), context.inject<Dependency>())
+  }
+
+  @Test
+  fun `should bind a singleton`() {
+    // Given:
+    val context = Context()
+    context.bind<Dependency>()
+
+    // When:
+    val instance = context.bindSingleton<Dependant>()
+
+    // Then:
+    assertNotNull(instance)
+    assertNotNull(instance.dependency)
+    assertSame(instance, context.inject<Dependant>())
+    assertSame(context.inject<Dependant>(), context.inject<Dependant>())
   }
 }

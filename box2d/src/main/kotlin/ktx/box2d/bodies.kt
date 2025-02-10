@@ -1,7 +1,15 @@
 package ktx.box2d
 
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.physics.box2d.*
+import com.badlogic.gdx.physics.box2d.Body
+import com.badlogic.gdx.physics.box2d.BodyDef
+import com.badlogic.gdx.physics.box2d.ChainShape
+import com.badlogic.gdx.physics.box2d.CircleShape
+import com.badlogic.gdx.physics.box2d.EdgeShape
+import com.badlogic.gdx.physics.box2d.Fixture
+import com.badlogic.gdx.physics.box2d.FixtureDef
+import com.badlogic.gdx.physics.box2d.PolygonShape
+import com.badlogic.gdx.physics.box2d.Shape
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -52,7 +60,7 @@ class BodyDefinition : BodyDef() {
 inline fun <ShapeType : Shape> BodyDefinition.fixture(
   shape: ShapeType,
   disposeOfShape: Boolean = false,
-  init: FixtureDefinition.(ShapeType) -> Unit = {}
+  init: FixtureDefinition.(ShapeType) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val fixtureDefinition = FixtureDefinition()
@@ -75,7 +83,7 @@ inline fun <ShapeType : Shape> BodyDefinition.fixture(
 inline fun BodyDefinition.circle(
   radius: Float = 1f,
   position: Vector2 = Vector2.Zero,
-  init: FixtureDefinition.(CircleShape) -> Unit = {}
+  init: FixtureDefinition.(CircleShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = CircleShape()
@@ -102,7 +110,7 @@ inline fun BodyDefinition.box(
   height: Float = 1f,
   position: Vector2 = Vector2.Zero,
   angle: Float = 0f,
-  init: FixtureDefinition.(PolygonShape) -> Unit = {}
+  init: FixtureDefinition.(PolygonShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = PolygonShape()
@@ -124,7 +132,7 @@ inline fun BodyDefinition.box(
 @OptIn(ExperimentalContracts::class)
 inline fun BodyDefinition.polygon(
   vertices: FloatArray? = null,
-  init: FixtureDefinition.(PolygonShape) -> Unit = {}
+  init: FixtureDefinition.(PolygonShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = PolygonShape()
@@ -143,7 +151,7 @@ inline fun BodyDefinition.polygon(
 @OptIn(ExperimentalContracts::class)
 inline fun BodyDefinition.polygon(
   vararg vertices: Vector2,
-  init: FixtureDefinition.(PolygonShape) -> Unit = {}
+  init: FixtureDefinition.(PolygonShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = PolygonShape()
@@ -162,7 +170,7 @@ inline fun BodyDefinition.polygon(
 @OptIn(ExperimentalContracts::class)
 inline fun BodyDefinition.chain(
   vararg vertices: Vector2,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -183,7 +191,7 @@ inline fun BodyDefinition.chain(
 @OptIn(ExperimentalContracts::class)
 inline fun BodyDefinition.chain(
   vertices: FloatArray,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -202,7 +210,7 @@ inline fun BodyDefinition.chain(
 @OptIn(ExperimentalContracts::class)
 inline fun BodyDefinition.loop(
   vararg vertices: Vector2,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -224,7 +232,7 @@ inline fun BodyDefinition.loop(
 @OptIn(ExperimentalContracts::class)
 inline fun BodyDefinition.loop(
   vertices: FloatArray,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -245,7 +253,7 @@ inline fun BodyDefinition.loop(
 inline fun BodyDefinition.edge(
   from: Vector2,
   to: Vector2,
-  init: FixtureDefinition.(EdgeShape) -> Unit = {}
+  init: FixtureDefinition.(EdgeShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = EdgeShape()
@@ -272,7 +280,7 @@ inline fun BodyDefinition.edge(
   fromY: Float,
   toX: Float,
   toY: Float,
-  init: FixtureDefinition.(EdgeShape) -> Unit = {}
+  init: FixtureDefinition.(EdgeShape) -> Unit = {},
 ): FixtureDefinition {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = EdgeShape()
@@ -297,7 +305,7 @@ inline fun BodyDefinition.edge(
 inline fun <S : Shape> Body.fixture(
   shape: S,
   disposeOfShape: Boolean = false,
-  init: FixtureDefinition.(S) -> Unit = {}
+  init: FixtureDefinition.(S) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val fixtureDefinition = FixtureDefinition()
@@ -323,7 +331,7 @@ inline fun <S : Shape> Body.fixture(
 inline fun Body.circle(
   radius: Float = 1f,
   position: Vector2 = Vector2.Zero,
-  init: FixtureDefinition.(CircleShape) -> Unit = {}
+  init: FixtureDefinition.(CircleShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = CircleShape()
@@ -350,7 +358,7 @@ inline fun Body.box(
   height: Float = 1f,
   position: Vector2 = Vector2.Zero,
   angle: Float = 0f,
-  init: FixtureDefinition.(PolygonShape) -> Unit = {}
+  init: FixtureDefinition.(PolygonShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = PolygonShape()
@@ -372,7 +380,7 @@ inline fun Body.box(
 @OptIn(ExperimentalContracts::class)
 inline fun Body.polygon(
   vertices: FloatArray? = null,
-  init: FixtureDefinition.(PolygonShape) -> Unit = {}
+  init: FixtureDefinition.(PolygonShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = PolygonShape()
@@ -391,7 +399,7 @@ inline fun Body.polygon(
 @OptIn(ExperimentalContracts::class)
 inline fun Body.polygon(
   vararg vertices: Vector2,
-  init: FixtureDefinition.(PolygonShape) -> Unit = {}
+  init: FixtureDefinition.(PolygonShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = PolygonShape()
@@ -411,7 +419,7 @@ inline fun Body.polygon(
 @OptIn(ExperimentalContracts::class)
 inline fun Body.chain(
   vararg vertices: Vector2,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -432,7 +440,7 @@ inline fun Body.chain(
 @OptIn(ExperimentalContracts::class)
 inline fun Body.chain(
   vertices: FloatArray,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -451,7 +459,7 @@ inline fun Body.chain(
 @OptIn(ExperimentalContracts::class)
 inline fun Body.loop(
   vararg vertices: Vector2,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -473,7 +481,7 @@ inline fun Body.loop(
 @OptIn(ExperimentalContracts::class)
 inline fun Body.loop(
   vertices: FloatArray,
-  init: FixtureDefinition.(ChainShape) -> Unit = {}
+  init: FixtureDefinition.(ChainShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = ChainShape()
@@ -494,7 +502,7 @@ inline fun Body.loop(
 inline fun Body.edge(
   from: Vector2,
   to: Vector2,
-  init: FixtureDefinition.(EdgeShape) -> Unit = {}
+  init: FixtureDefinition.(EdgeShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = EdgeShape()
@@ -521,7 +529,7 @@ inline fun Body.edge(
   fromY: Float,
   toX: Float,
   toY: Float,
-  init: FixtureDefinition.(EdgeShape) -> Unit = {}
+  init: FixtureDefinition.(EdgeShape) -> Unit = {},
 ): Fixture {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val shape = EdgeShape()

@@ -15,11 +15,14 @@ import kotlin.contracts.contract
  * @param allowSleep if true, inactive bodies will not be simulated. Improves performance. Defaults to true.
  * @return a new [World] instance with given parameters.
  */
-fun createWorld(gravity: Vector2 = Vector2.Zero, allowSleep: Boolean = true) = World(gravity, allowSleep)
+fun createWorld(
+  gravity: Vector2 = Vector2.Zero,
+  allowSleep: Boolean = true,
+) = World(gravity, allowSleep)
 
 /**
  * Type-safe [Body] building DSL.
- * @param type [BodyType] of the constructed [Body]. Matches LibGDX default of [BodyType.StaticBody].
+ * @param type [BodyType] of the constructed [Body]. Matches libGDX default of [BodyType.StaticBody].
  * @param init inlined. Invoked on a [BodyDefinition] instance, which provides access to [Body] properties, as well as
  *    fixture building DSL. Defaults to no-op.
  * @return a fully constructed [Body] instance with all defined fixtures.
@@ -28,7 +31,10 @@ fun createWorld(gravity: Vector2 = Vector2.Zero, allowSleep: Boolean = true) = W
  */
 @Box2DDsl
 @OptIn(ExperimentalContracts::class)
-inline fun World.body(type: BodyType = BodyType.StaticBody, init: BodyDefinition.() -> Unit = {}): Body {
+inline fun World.body(
+  type: BodyType = BodyType.StaticBody,
+  init: BodyDefinition.() -> Unit = {},
+): Body {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val bodyDefinition = BodyDefinition()
   bodyDefinition.type = type
@@ -101,7 +107,7 @@ typealias KtxRayCastCallback = (
   fixture: Fixture,
   point: Vector2,
   normal: Vector2,
-  fraction: Float
+  fraction: Float,
 ) -> Float
 
 /**
@@ -141,7 +147,7 @@ object RayCast {
 fun World.rayCast(
   start: Vector2,
   end: Vector2,
-  callback: KtxRayCastCallback
+  callback: KtxRayCastCallback,
 ) {
   rayCast(callback, start, end)
 }
@@ -163,7 +169,7 @@ fun World.rayCast(
   startY: Float,
   endX: Float,
   endY: Float,
-  callback: KtxRayCastCallback
+  callback: KtxRayCastCallback,
 ) {
   rayCast(callback, startX, startY, endX, endY)
 }
@@ -183,7 +189,7 @@ fun World.query(
   lowerY: Float,
   upperX: Float,
   upperY: Float,
-  callback: KtxQueryCallback
+  callback: KtxQueryCallback,
 ) {
   QueryAABB(callback, lowerX, lowerY, upperX, upperY)
 }

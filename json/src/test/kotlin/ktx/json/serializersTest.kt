@@ -2,26 +2,35 @@ package ktx.json
 
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonValue
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.matchers.shouldThrow
 import org.junit.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 
 /**
  * Guarantees that [write] method is optional to implement.
  */
 @Suppress("unused", "ClassName")
 class `should implement ReadOnlyJsonSerializer with no 'write' method overridden`<T> : ReadOnlyJsonSerializer<T> {
-  override fun read(json: Json, jsonValue: JsonValue, type: Class<*>?): T = throw NotImplementedError()
+  override fun read(
+    json: Json,
+    jsonValue: JsonValue,
+    type: Class<*>?,
+  ): T = throw NotImplementedError()
 }
 
 class ReadOnlyJsonSerializerTest {
   @Test
   fun `default implementation for 'write' method should throw UnsupportedOperationException`() {
-    val readOnlyJsonSerializer = object : ReadOnlyJsonSerializer<Any> {
-      override fun read(json: Json, jsonValue: JsonValue, type: Class<*>?): Any = throw NotImplementedError()
-    }
+    val readOnlyJsonSerializer =
+      object : ReadOnlyJsonSerializer<Any> {
+        override fun read(
+          json: Json,
+          jsonValue: JsonValue,
+          type: Class<*>?,
+        ): Any = throw NotImplementedError()
+      }
 
     shouldThrow<UnsupportedOperationException> {
       readOnlyJsonSerializer.write(Json(), JsonValue(JsonValue.ValueType.`object`), Any::class.java)
@@ -73,5 +82,9 @@ class ReadOnlyJsonSerializerFactoryTest {
     value shouldEqual data
   }
 
-  data class Data(val intField: Int, val stringField: String, val doubleField: Double)
+  data class Data(
+    val intField: Int,
+    val stringField: String,
+    val doubleField: Double,
+  )
 }

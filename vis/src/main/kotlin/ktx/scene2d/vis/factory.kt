@@ -9,11 +9,39 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.layout.FloatingGroup
+import com.kotcrab.vis.ui.layout.FlowGroup
 import com.kotcrab.vis.ui.layout.GridGroup
-import com.kotcrab.vis.ui.layout.HorizontalFlowGroup
-import com.kotcrab.vis.ui.layout.VerticalFlowGroup
 import com.kotcrab.vis.ui.util.adapter.ListAdapter
-import com.kotcrab.vis.ui.widget.*
+import com.kotcrab.vis.ui.widget.BusyBar
+import com.kotcrab.vis.ui.widget.ButtonBar
+import com.kotcrab.vis.ui.widget.CollapsibleWidget
+import com.kotcrab.vis.ui.widget.HighlightTextArea
+import com.kotcrab.vis.ui.widget.HorizontalCollapsibleWidget
+import com.kotcrab.vis.ui.widget.LinkLabel
+import com.kotcrab.vis.ui.widget.ListView
+import com.kotcrab.vis.ui.widget.MultiSplitPane
+import com.kotcrab.vis.ui.widget.ScrollableTextArea
+import com.kotcrab.vis.ui.widget.Separator
+import com.kotcrab.vis.ui.widget.VisCheckBox
+import com.kotcrab.vis.ui.widget.VisDialog
+import com.kotcrab.vis.ui.widget.VisImage
+import com.kotcrab.vis.ui.widget.VisImageButton
+import com.kotcrab.vis.ui.widget.VisImageTextButton
+import com.kotcrab.vis.ui.widget.VisLabel
+import com.kotcrab.vis.ui.widget.VisList
+import com.kotcrab.vis.ui.widget.VisProgressBar
+import com.kotcrab.vis.ui.widget.VisRadioButton
+import com.kotcrab.vis.ui.widget.VisScrollPane
+import com.kotcrab.vis.ui.widget.VisSelectBox
+import com.kotcrab.vis.ui.widget.VisSlider
+import com.kotcrab.vis.ui.widget.VisSplitPane
+import com.kotcrab.vis.ui.widget.VisTable
+import com.kotcrab.vis.ui.widget.VisTextArea
+import com.kotcrab.vis.ui.widget.VisTextButton
+import com.kotcrab.vis.ui.widget.VisTextField
+import com.kotcrab.vis.ui.widget.VisTree
+import com.kotcrab.vis.ui.widget.VisValidatableTextField
+import com.kotcrab.vis.ui.widget.VisWindow
 import com.kotcrab.vis.ui.widget.color.BasicColorPicker
 import com.kotcrab.vis.ui.widget.color.ExtendedColorPicker
 import com.kotcrab.vis.ui.widget.spinner.Spinner
@@ -21,7 +49,15 @@ import com.kotcrab.vis.ui.widget.spinner.SpinnerModel
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane
 import com.kotcrab.vis.ui.widget.toast.Toast
 import com.kotcrab.vis.ui.widget.toast.ToastTable
-import ktx.scene2d.*
+import ktx.scene2d.KTable
+import ktx.scene2d.KTree
+import ktx.scene2d.KWidget
+import ktx.scene2d.RootWidget
+import ktx.scene2d.Scene2dDsl
+import ktx.scene2d.actor
+import ktx.scene2d.defaultHorizontalStyle
+import ktx.scene2d.defaultStyle
+import ktx.scene2d.defaultVerticalStyle
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -39,7 +75,7 @@ import com.badlogic.gdx.utils.Array as GdxArray
 inline fun RootWidget.visWindow(
   title: String,
   style: String = defaultStyle,
-  init: KVisWindow.() -> Unit = {}
+  init: KVisWindow.() -> Unit = {},
 ): KVisWindow {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return storeActor(KVisWindow(title, style)).apply(init)
@@ -57,7 +93,7 @@ inline fun RootWidget.visWindow(
 inline fun RootWidget.visDialog(
   title: String,
   style: String = defaultStyle,
-  init: KVisDialog.() -> Unit = {}
+  init: KVisDialog.() -> Unit = {},
 ): KVisDialog {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return storeActor(KVisDialog(title, style)).apply(init)
@@ -73,7 +109,7 @@ inline fun RootWidget.visDialog(
 @OptIn(ExperimentalContracts::class)
 inline fun RootWidget.toastTable(
   defaultSpacing: Boolean = false,
-  init: KToastTable.() -> Unit = {}
+  init: KToastTable.() -> Unit = {},
 ): KToastTable {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return storeActor(KToastTable(defaultSpacing)).apply(init)
@@ -92,7 +128,7 @@ inline fun RootWidget.toastTable(
 inline fun <S> KWidget<S>.visLabel(
   text: CharSequence,
   style: String = defaultStyle,
-  init: (@Scene2dDsl VisLabel).(S) -> Unit = {}
+  init: (@Scene2dDsl VisLabel).(S) -> Unit = {},
 ): VisLabel {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisLabel(text, style), init)
@@ -113,7 +149,7 @@ inline fun <S> KWidget<S>.linkLabel(
   text: CharSequence,
   url: CharSequence = text,
   style: String = defaultStyle,
-  init: (@Scene2dDsl LinkLabel).(S) -> Unit = {}
+  init: (@Scene2dDsl LinkLabel).(S) -> Unit = {},
 ): LinkLabel {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(LinkLabel(text, url, style), init)
@@ -132,7 +168,7 @@ inline fun <S> KWidget<S>.visImage(
   drawable: Drawable,
   scaling: Scaling = Scaling.stretch,
   align: Int = Align.center,
-  init: (@Scene2dDsl VisImage).(S) -> Unit = {}
+  init: (@Scene2dDsl VisImage).(S) -> Unit = {},
 ): VisImage {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisImage(drawable, scaling, align), init)
@@ -149,7 +185,7 @@ inline fun <S> KWidget<S>.visImage(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visImage(
   drawableName: String,
-  init: (@Scene2dDsl VisImage).(S) -> Unit = {}
+  init: (@Scene2dDsl VisImage).(S) -> Unit = {},
 ): VisImage {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisImage(drawableName), init)
@@ -166,7 +202,7 @@ inline fun <S> KWidget<S>.visImage(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visImage(
   texture: Texture,
-  init: (@Scene2dDsl VisImage).(S) -> Unit = {}
+  init: (@Scene2dDsl VisImage).(S) -> Unit = {},
 ): VisImage {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisImage(texture), init)
@@ -183,7 +219,7 @@ inline fun <S> KWidget<S>.visImage(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visImage(
   ninePatch: NinePatch,
-  init: (@Scene2dDsl VisImage).(S) -> Unit = {}
+  init: (@Scene2dDsl VisImage).(S) -> Unit = {},
 ): VisImage {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisImage(ninePatch), init)
@@ -200,7 +236,7 @@ inline fun <S> KWidget<S>.visImage(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visImage(
   textureRegion: TextureRegion,
-  init: (@Scene2dDsl VisImage).(S) -> Unit = {}
+  init: (@Scene2dDsl VisImage).(S) -> Unit = {},
 ): VisImage {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisImage(textureRegion), init)
@@ -218,7 +254,7 @@ inline fun <S> KWidget<S>.visImage(
 @OptIn(ExperimentalContracts::class)
 inline fun <I> KWidget<*>.visList(
   style: String = defaultStyle,
-  init: KVisList<I>.() -> Unit = {}
+  init: KVisList<I>.() -> Unit = {},
 ): KVisList<I> {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val list = KVisList<I>(style)
@@ -229,7 +265,7 @@ inline fun <I> KWidget<*>.visList(
 }
 
 /**
- * @param items optional LibGDX array of list widget items. Defaults to null.
+ * @param items optional libGDX array of list widget items. Defaults to null.
  * @param style name of the widget style. Defaults to [defaultStyle].
  * @return a [VisList] instance added to this group.
  * @param I type of items stored by this widget. Usually items are converted to string and displayed.
@@ -237,7 +273,7 @@ inline fun <I> KWidget<*>.visList(
 @Scene2dDsl
 fun <I> KWidget<*>.visListOf(
   items: GdxArray<I>? = null,
-  style: String = defaultStyle
+  style: String = defaultStyle,
 ): KVisList<I> {
   val list = KVisList<I>(style)
   storeActor(list)
@@ -267,14 +303,14 @@ inline fun <S> KWidget<S>.visProgressBar(
   step: Float = 1f,
   vertical: Boolean = false,
   style: String = if (vertical) defaultVerticalStyle else defaultHorizontalStyle,
-  init: (@Scene2dDsl VisProgressBar).(S) -> Unit = {}
+  init: (@Scene2dDsl VisProgressBar).(S) -> Unit = {},
 ): VisProgressBar {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisProgressBar(min, max, step, vertical, style), init)
 }
 
 /**
- * @param items optional LibGDX array of the [VisSelectBox] items. Defaults to null.
+ * @param items optional libGDX array of the [VisSelectBox] items. Defaults to null.
  * @param style name of the widget style. Defaults to [defaultStyle].
  * @return a [VisSelectBox] instance added to this group.
  * @param I type of items stored by this widget. Usually items are converted to string and displayed.
@@ -282,7 +318,7 @@ inline fun <S> KWidget<S>.visProgressBar(
 @Scene2dDsl
 fun <I> KWidget<*>.visSelectBoxOf(
   items: GdxArray<I>? = null,
-  style: String = defaultStyle
+  style: String = defaultStyle,
 ): KVisSelectBox<I> {
   val selectBox = KVisSelectBox<I>(style)
   storeActor(selectBox)
@@ -304,7 +340,7 @@ fun <I> KWidget<*>.visSelectBoxOf(
 @OptIn(ExperimentalContracts::class)
 inline fun <I> KWidget<*>.visSelectBox(
   style: String = defaultStyle,
-  init: KVisSelectBox<I>.() -> Unit = {}
+  init: KVisSelectBox<I>.() -> Unit = {},
 ): KVisSelectBox<I> {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val selectBox = KVisSelectBox<I>(style)
@@ -334,7 +370,7 @@ inline fun <S> KWidget<S>.visSlider(
   step: Float = 1f,
   vertical: Boolean = false,
   style: String = if (vertical) defaultVerticalStyle else defaultHorizontalStyle,
-  init: (@Scene2dDsl VisSlider).(S) -> Unit = {}
+  init: (@Scene2dDsl VisSlider).(S) -> Unit = {},
 ): VisSlider {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisSlider(min, max, step, vertical, style), init)
@@ -353,7 +389,7 @@ inline fun <S> KWidget<S>.visSlider(
 inline fun <S> KWidget<S>.visTextArea(
   text: String = "",
   style: String = defaultStyle,
-  init: (@Scene2dDsl VisTextArea).(S) -> Unit = {}
+  init: (@Scene2dDsl VisTextArea).(S) -> Unit = {},
 ): VisTextArea {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisTextArea(text, style), init)
@@ -372,7 +408,7 @@ inline fun <S> KWidget<S>.visTextArea(
 inline fun <S> KWidget<S>.highlightTextArea(
   text: String = "",
   style: String = defaultStyle,
-  init: (@Scene2dDsl HighlightTextArea).(S) -> Unit = {}
+  init: (@Scene2dDsl HighlightTextArea).(S) -> Unit = {},
 ): HighlightTextArea {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(HighlightTextArea(text, style), init)
@@ -391,7 +427,7 @@ inline fun <S> KWidget<S>.highlightTextArea(
 inline fun <S> KWidget<S>.scrollableTextArea(
   text: String = "",
   style: String = defaultStyle,
-  init: (@Scene2dDsl ScrollableTextArea).(S) -> Unit = {}
+  init: (@Scene2dDsl ScrollableTextArea).(S) -> Unit = {},
 ): ScrollableTextArea {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(ScrollableTextArea(text, style), init)
@@ -410,7 +446,7 @@ inline fun <S> KWidget<S>.scrollableTextArea(
 inline fun <S> KWidget<S>.visTextField(
   text: String = "",
   style: String = defaultStyle,
-  init: (@Scene2dDsl VisTextField).(S) -> Unit = {}
+  init: (@Scene2dDsl VisTextField).(S) -> Unit = {},
 ): VisTextField {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisTextField(text, style), init)
@@ -429,7 +465,7 @@ inline fun <S> KWidget<S>.visTextField(
 inline fun <S> KWidget<S>.visValidatableTextField(
   text: String = "",
   style: String = defaultStyle,
-  init: (@Scene2dDsl VisValidatableTextField).(S) -> Unit = {}
+  init: (@Scene2dDsl VisValidatableTextField).(S) -> Unit = {},
 ): VisValidatableTextField {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(VisValidatableTextField(text, style), init)
@@ -446,7 +482,7 @@ inline fun <S> KWidget<S>.visValidatableTextField(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.busyBar(
   style: String = defaultStyle,
-  init: (@Scene2dDsl BusyBar).(S) -> Unit = {}
+  init: (@Scene2dDsl BusyBar).(S) -> Unit = {},
 ): BusyBar {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(BusyBar(style), init)
@@ -463,7 +499,7 @@ inline fun <S> KWidget<S>.busyBar(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.separator(
   style: String = defaultStyle,
-  init: (@Scene2dDsl Separator).(S) -> Unit = {}
+  init: (@Scene2dDsl Separator).(S) -> Unit = {},
 ): Separator {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(Separator(style), init)
@@ -482,7 +518,7 @@ inline fun <S> KWidget<S>.separator(
 inline fun <S> KWidget<S>.visTextButton(
   text: String,
   style: String = defaultStyle,
-  init: KVisTextButton.(S) -> Unit = {}
+  init: KVisTextButton.(S) -> Unit = {},
 ): KVisTextButton {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisTextButton(text, style), init)
@@ -499,7 +535,7 @@ inline fun <S> KWidget<S>.visTextButton(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visImageButton(
   style: String = defaultStyle,
-  init: KVisImageButton.(S) -> Unit = {}
+  init: KVisImageButton.(S) -> Unit = {},
 ): KVisImageButton {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisImageButton(style), init)
@@ -518,7 +554,7 @@ inline fun <S> KWidget<S>.visImageButton(
 inline fun <S> KWidget<S>.visImageTextButton(
   text: String,
   style: String = defaultStyle,
-  init: KVisImageTextButton.(S) -> Unit = {}
+  init: KVisImageTextButton.(S) -> Unit = {},
 ): KVisImageTextButton {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisImageTextButton(text, style), init)
@@ -537,7 +573,7 @@ inline fun <S> KWidget<S>.visImageTextButton(
 inline fun <S> KWidget<S>.visCheckBox(
   text: String,
   style: String = defaultStyle,
-  init: KVisCheckBox.(S) -> Unit = {}
+  init: KVisCheckBox.(S) -> Unit = {},
 ): KVisCheckBox {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisCheckBox(text, style), init)
@@ -556,7 +592,7 @@ inline fun <S> KWidget<S>.visCheckBox(
 inline fun <S> KWidget<S>.visRadioButton(
   text: String,
   style: String = "radio",
-  init: KVisRadioButton.(S) -> Unit = {}
+  init: KVisRadioButton.(S) -> Unit = {},
 ): KVisRadioButton {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisRadioButton(text, style), init)
@@ -573,7 +609,7 @@ inline fun <S> KWidget<S>.visRadioButton(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visTree(
   style: String = defaultStyle,
-  init: KVisTree.(S) -> Unit = {}
+  init: KVisTree.(S) -> Unit = {},
 ): KVisTree {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisTree(style), init)
@@ -590,7 +626,7 @@ inline fun <S> KWidget<S>.visTree(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.basicColorPicker(
   style: String = defaultStyle,
-  init: KBasicColorPicker.(S) -> Unit = {}
+  init: KBasicColorPicker.(S) -> Unit = {},
 ): KBasicColorPicker {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KBasicColorPicker(style), init)
@@ -607,7 +643,7 @@ inline fun <S> KWidget<S>.basicColorPicker(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.extendedColorPicker(
   style: String = defaultStyle,
-  init: KExtendedColorPicker.(S) -> Unit = {}
+  init: KExtendedColorPicker.(S) -> Unit = {},
 ): KExtendedColorPicker {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KExtendedColorPicker(style), init)
@@ -628,7 +664,7 @@ inline fun <S> KWidget<S>.spinner(
   name: String,
   model: SpinnerModel,
   style: String = defaultStyle,
-  init: KSpinner.(S) -> Unit = {}
+  init: KSpinner.(S) -> Unit = {},
 ): KSpinner {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KSpinner(style, name, model), init)
@@ -645,44 +681,69 @@ inline fun <S> KWidget<S>.spinner(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visTable(
   defaultSpacing: Boolean = false,
-  init: KVisTable.(S) -> Unit = {}
+  init: KVisTable.(S) -> Unit = {},
 ): KVisTable {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisTable(defaultSpacing), init)
 }
 
 /**
+ * Deprecated. Use [flowGroup] instead.
  * @param spacing item spacing of this group.
  * @param init will be invoked with the widget as "this". Consumes actor container (usually a [Cell] or [Node]) that
  * contains the widget. Might consume the actor itself if this group does not keep actors in dedicated containers.
  * Inlined.
- * @return a [HorizontalFlowGroup] instance added to this group.
+ * @return a [KHorizontalFlowGroup] instance added to this group.
  */
 @Scene2dDsl
 @OptIn(ExperimentalContracts::class)
+@Suppress("DEPRECATION")
+@Deprecated("Use KFlowGroup instead.", replaceWith = ReplaceWith("flowGroup"))
 inline fun <S> KWidget<S>.horizontalFlowGroup(
   spacing: Float = 0f,
-  init: KHorizontalFlowGroup.(S) -> Unit = {}
+  init: KHorizontalFlowGroup.(S) -> Unit = {},
 ): KHorizontalFlowGroup {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KHorizontalFlowGroup(spacing), init)
 }
 
 /**
+ * Deprecated. Use [flowGroup] instead.
  * @param spacing item spacing of this group.
  * @param init will be invoked with the widget as "this". Consumes actor container (usually a [Cell] or [Node]) that
  * contains the widget. Might consume the actor itself if this group does not keep actors in dedicated containers.
  * Inlined.
- * @return a [VerticalFlowGroup] instance added to this group.
+ * @return a [KVerticalFlowGroup] instance added to this group.
  */
 @Scene2dDsl
 @OptIn(ExperimentalContracts::class)
+@Suppress("DEPRECATION")
+@Deprecated("Use KFlowGroup instead.", replaceWith = ReplaceWith("flowGroup"))
 inline fun <S> KWidget<S>.verticalFlowGroup(
   spacing: Float = 0f,
-  init: KVerticalFlowGroup.(S) -> Unit = {}
+  init: KVerticalFlowGroup.(S) -> Unit = {},
 ): KVerticalFlowGroup {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVerticalFlowGroup(spacing), init)
+}
+
+/**
+ * @param vertical if true, child actors will be stacked vertically. If false, they will be placed horizontally.
+ * @param spacing item spacing of this group.
+ * @param init will be invoked with the widget as "this". Consumes actor container (usually a [Cell] or [Node]) that
+ * contains the widget. Might consume the actor itself if this group does not keep actors in dedicated containers.
+ * Inlined.
+ * @return a [FlowGroup] instance added to this group.
+ */
+@Scene2dDsl
+@OptIn(ExperimentalContracts::class)
+inline fun <S> KWidget<S>.flowGroup(
+  vertical: Boolean = false,
+  spacing: Float = 0f,
+  init: KFlowGroup.(S) -> Unit = {},
+): KFlowGroup {
+  contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
+  return actor(KFlowGroup(vertical, spacing), init)
 }
 
 /**
@@ -698,7 +759,7 @@ inline fun <S> KWidget<S>.verticalFlowGroup(
 inline fun <S> KWidget<S>.gridGroup(
   itemSize: Float = 256f,
   spacing: Float = 8f,
-  init: KGridGroup.(S) -> Unit = {}
+  init: KGridGroup.(S) -> Unit = {},
 ): KGridGroup {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KGridGroup(itemSize, spacing), init)
@@ -712,9 +773,7 @@ inline fun <S> KWidget<S>.gridGroup(
  */
 @Scene2dDsl
 @OptIn(ExperimentalContracts::class)
-inline fun <S> KWidget<S>.floatingGroup(
-  init: KFloatingGroup.(S) -> Unit = {}
-): KFloatingGroup {
+inline fun <S> KWidget<S>.floatingGroup(init: KFloatingGroup.(S) -> Unit = {}): KFloatingGroup {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KFloatingGroup(), init)
 }
@@ -727,9 +786,7 @@ inline fun <S> KWidget<S>.floatingGroup(
  */
 @Scene2dDsl
 @OptIn(ExperimentalContracts::class)
-inline fun <S> KWidget<S>.dragPane(
-  init: KDragPane.(S) -> Unit = {}
-): KDragPane {
+inline fun <S> KWidget<S>.dragPane(init: KDragPane.(S) -> Unit = {}): KDragPane {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KDragPane(), init)
 }
@@ -745,7 +802,7 @@ inline fun <S> KWidget<S>.dragPane(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.visScrollPane(
   style: String = defaultStyle,
-  init: (@Scene2dDsl VisScrollPane).(S) -> Unit = {}
+  init: KVisScrollPane.(S) -> Unit = {},
 ): KVisScrollPane {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisScrollPane(style), init)
@@ -765,7 +822,7 @@ inline fun <S> KWidget<S>.visScrollPane(
 inline fun <S> KWidget<S>.visSplitPane(
   vertical: Boolean = false,
   style: String = if (vertical) defaultVerticalStyle else defaultHorizontalStyle,
-  init: (@Scene2dDsl VisSplitPane).(S) -> Unit = {}
+  init: KVisSplitPane.(S) -> Unit = {},
 ): KVisSplitPane {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KVisSplitPane(vertical, style), init)
@@ -785,7 +842,7 @@ inline fun <S> KWidget<S>.visSplitPane(
 inline fun <S> KWidget<S>.multiSplitPane(
   vertical: Boolean = false,
   style: String = if (vertical) defaultVerticalStyle else defaultHorizontalStyle,
-  init: KMultiSplitPane.(S) -> Unit = {}
+  init: KMultiSplitPane.(S) -> Unit = {},
 ): KMultiSplitPane {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KMultiSplitPane(vertical, style), init)
@@ -802,7 +859,7 @@ inline fun <S> KWidget<S>.multiSplitPane(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.collapsible(
   defaultSpacing: Boolean = false,
-  init: KCollapsible.(S) -> Unit = {}
+  init: KCollapsible.(S) -> Unit = {},
 ): KCollapsible {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KCollapsible(KVisTable(defaultSpacing)), init)
@@ -819,7 +876,7 @@ inline fun <S> KWidget<S>.collapsible(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.horizontalCollapsible(
   defaultSpacing: Boolean = false,
-  init: KHorizontalCollapsible.(S) -> Unit = {}
+  init: KHorizontalCollapsible.(S) -> Unit = {},
 ): KHorizontalCollapsible {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   return actor(KHorizontalCollapsible(KVisTable(defaultSpacing)), init)
@@ -838,7 +895,7 @@ inline fun <S> KWidget<S>.horizontalCollapsible(
 inline fun <S> KWidget<S>.buttonBar(
   order: String? = null,
   tableInit: VisTable.(S) -> Unit = {},
-  init: (@Scene2dDsl ButtonBar).() -> Unit = {}
+  init: (@Scene2dDsl ButtonBar).() -> Unit = {},
 ): ButtonBar {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val bar = if (order == null) ButtonBar() else ButtonBar(order)
@@ -858,7 +915,7 @@ inline fun <S> KWidget<S>.buttonBar(
 inline fun <I> KWidget<*>.listView(
   itemAdapter: ListAdapter<I>,
   style: String = defaultStyle,
-  init: ListView<I>.() -> Unit = {}
+  init: ListView<I>.() -> Unit = {},
 ): ListView<I> {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val view = ListView(itemAdapter, style)
@@ -877,13 +934,11 @@ inline fun <I> KWidget<*>.listView(
 @OptIn(ExperimentalContracts::class)
 inline fun <S> KWidget<S>.tabbedPane(
   style: String = defaultStyle,
-  init: KTabbedPane.(S) -> Unit = {}
+  init: KTabbedPane.(S) -> Unit = {},
 ): KTabbedPane {
   contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
   val pane = KTabbedPane(style)
   val table = pane.table
-  var storage: S? = null
-  actor(table, { storage = it })
-  pane.init(storage!!)
+  actor(table, { pane.init(it) })
   return pane
 }

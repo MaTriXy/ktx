@@ -1,14 +1,14 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-math.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-math)
 
-# KTX: math utilities
+# KTX: Math utilities
 
-Math extensions and operator overloads for LibGDX math API and Kotlin ranges.
+Math extensions and operator overloads for libGDX math API and Kotlin ranges.
 
 ### Why?
 
 Java does not feature operator overloading, which leads to weird constructs like `vector.add(a).sub(b)`. Kotlin brings
 the possibility to use a much more readable and natural syntax with its operators overloading: `vector + a - b`. However,
-LibGDX API does not match Kotlin naming conventions (necessary for operators to work), which means extension functions
+libGDX API does not match Kotlin naming conventions (necessary for operators to work), which means extension functions
 are necessary to make it work like that.
 
 Kotlin also provides convenient syntax for ranges, which can be used for clearly describing criteria for selecting random
@@ -19,9 +19,9 @@ numbers.
 #### `Vector2`
 
 - `vec2` is a global factory function that can create `Vector2` instances with named parameters for extra readability.
-- `+=`, `-=`, `*=` and `/=` can be used to add, subtract, multiply or divide current values according to the second
+- `+=`, `-=`, `*=` and `/=` can be used to add, subtract, multiply (`scl`) or divide current values according to the second
 vector or number. Use these operators to _mutate_ existing vectors.
-- `+`, `-`, `*` and `/` can be used to add, subtract, multiply or divide vectors according to the second vector or
+- `+`, `-`, `*` and `/` can be used to add, subtract, multiply (`scl`) or divide vectors according to the second vector or
 number, resulting in a new vector. Use these operators to _create_ new instances of vectors.
 - Unary `-` operator (a single minus before the vector) allows to negate both vector values, creating a new vector.
 - `++` and `--` operators can be used to increment and decrement both x and y values of the vector, resulting in a new
@@ -44,13 +44,13 @@ call `vec in rect` (or `vec !in rect`) to check if the rectangle contains (or do
 #### `ImmutableVector2`
 
 - `ImmutableVector2` is an immutable equivalent to `Vector2`. It provides most of the functionality of `Vector2`, but
-mutation methods return new vectors instead of mutate the reference.
-- Note that one may want to create type aliases to makes the usage more concise: `typealias Vect2 = ImmutableVector2`
+mutation methods return new vectors instead of mutating the objects.
+- Note that one may want to create type aliases to make the usage more concise: `typealias Vect2 = ImmutableVector2`.
 - `ImmutableVector` is comparable (`>`, `>=`, `<`, `<=` are available). Comparison is evaluated by length.
 - Instances can be destructed: `val (x, y) = vector2`.
 - `Vector2.toImmutable()` Returns an immutable vector with same `x` and `y` attributes than this `Vector2`
-- `ImmutableVector2.toVector2()` Returns an mutable vector with same `x` and `y` attributes than this `ImmutableVector2`
-- Most of the functions of `Vector2` which mutate the vector are provided but deprecated. This allow smooth migration from
+- `ImmutableVector2.toVector2()` Returns a mutable vector with same `x` and `y` attributes than this `ImmutableVector2`
+- Most of the functions of `Vector2` which mutate the vector are provided but deprecated. This allows smooth migration from
 `Vector2`.
 - Notable differences with `Vector2`:
   - `+`, `-`, `*`, `/` are available and replace `add`, `sub` and `scl`.
@@ -59,8 +59,8 @@ mutation methods return new vectors instead of mutate the reference.
   - `withRandomRotation` replace `setToRandomRotation` and return a new vector of same length and a random rotation.
   - `withAngleDeg()` and `withAngleRad` replace `setAngle` and `setAngleRad` and return a new vector of same length and
   the given angle to x-axis.
-  - `cpy` is deprecated and is not necessary. Immutable vectors can be safely shared. However since `ImmutableVector` is
-  a `data class`, there is a `copy(x, y)` method available allowing to easily create new vectors based on existing ones. 
+  - `cpy` is deprecated and is not necessary. Immutable vectors can be safely shared. However, since `ImmutableVector` is
+  a `data class`, there is a `copy(x, y)` method available allowing to easily create new vectors based on existing ones.
   - `set(x, y)` and `setZero()` are not provided.   
   - Functions dealing with angles in degree are suffixed with `Deg` and all returns values between `-180` and `+180`.
   - All angle functions return the angle toward positive y-axis.
@@ -80,7 +80,7 @@ val v2 = ImmutableVector2.X.withRotationDeg(30f) // unit vector of given angle
 val v3 = -ImmutableVector2.X // inverse of a vector
 ```
 
-Converting from LibGDX `Vector2` to `ImmutableVector2` (and vice versa):
+Converting from libGDX `Vector2` to `ImmutableVector2` (and vice versa):
 
 ```kotlin
 import ktx.math.*
@@ -104,7 +104,7 @@ vector1 += ImmutableVector2.Y
 vector1 *= 3f
 
 val vector2 = vector1.withClamp(0f, 1f) * 5f // `vector1` is not modified.
-``` 
+```
 
 Creating convenience type alias to ease the use of immutable vectors:
 
@@ -123,19 +123,36 @@ var v2 = Vec2(1f, 2f).withLength(3f)
 
 - `vec3` is a global factory function that can create `Vector3` instances with named parameters for extra readability.
 It is also overloaded with a second variant that allows to convert `Vector2` instances to `Vector3`.
-- `+=`, `-=`, `*=` and `/=` can be used to add, subtract, multiply or divide current values according to the second
+- `+=`, `-=`, `*=` and `/=` can be used to add, subtract, multiply (`scl`) or divide current values according to the second
 vector or number. Use these operators to _mutate_ existing vectors.
-- `+`, `-`, `*` and `/` can be used to add, subtract, multiply or divide vectors according to the second vector or
+- `+`, `-`, `*` and `/` can be used to add, subtract, multiply (`scl`) or divide vectors according to the second vector or
 number, resulting in a new vector. Use these operators to _create_ new instances of vectors.
 - Unary `-` operator (a single minus before the vector) allows to negate both vector values, creating a new vector.
 - `++` and `--` operators can be used to increment and decrement x, y and z values of the vector, resulting in a new
 vector. To avoid creating new vectors, prefer `+= 1` and `-= 1` instead.
-- `Vector3` instances can be destructed to tree float variables in one step with `val (x, y, z) = vector3` syntax thanks
+- `Vector3` instances can be destructed to three float variables in one step with `val (x, y, z) = vector3` syntax thanks
 to `component1()`, `component2()` and `component3` operator methods.
 - `Vector3` instances are now comparable - `<`, `>`, `<=`, `>=` operators can be used to determine which vector has greater
 (or equal) overall length, similarly to how `Vector2` now works.
 - `dot` infix function allows to calculate the dot product of 2 vectors.
 - `x` infix function allows to calculate the cross product of 2 vectors.
+
+#### `Vector4`
+
+- `vec4` is a global factory function that can create `Vector4` instances with named parameters for extra readability.
+  It is also overloaded with a second variant that allows to convert `Vector2` and `Vector3` instances to `Vector4`.
+- `+=`, `-=`, `*=` and `/=` can be used to add, subtract, multiply (`scl`) or divide current values according to the second
+  vector or number. Use these operators to _mutate_ existing vectors.
+- `+`, `-`, `*` and `/` can be used to add, subtract, multiply (`scl`) or divide vectors according to the second vector or
+  number, resulting in a new vector. Use these operators to _create_ new instances of vectors.
+- Unary `-` operator (a single minus before the vector) allows to negate both vector values, creating a new vector.
+- `++` and `--` operators can be used to increment and decrement x, y, z, and w values of the vector, resulting in a new
+  vector. To avoid creating new vectors, prefer `+= 1` and `-= 1` instead.
+- `Vector4` instances can be destructed to four float variables in one step with `val (x, y, z, w) = vector4` syntax thanks
+  to `component1()`, `component2()` and `component3` operator methods.
+- `Vector3` instances are now comparable - `<`, `>`, `<=`, `>=` operators can be used to determine which vector has greater
+  (or equal) overall length.
+- `dot` infix function allows to calculate the dot product of 2 vectors.
 
 #### `Matrix3`
 
@@ -166,16 +183,16 @@ new instances of matrices.
 - `Matrix4` instances can be multiplied with a `Vector3` using `*` operator.
 - `Matrix4` instances can be destructed into sixteen float variables (each representing one of its cells) thanks to the
 `component1()` - `component16()` operator functions.
-  
+
 #### Ranges
 
-- The `amid` infix function for Int and Float allows easy creation of a range by using a center and a tolerance. Such a 
+- The `amid` infix function for Int and Float allows easy creation of a range by using a center and a tolerance. Such a
 definition is a convenient way to think about a range from which random values will be selected.
-- The four arithmetic operators are available for easily shifting or scaling ranges. This allows intuitive modification 
-of ranges in code, which can be useful for code clarity when defining a range for random number selection, or for 
+- The four arithmetic operators are available for easily shifting or scaling ranges. This allows intuitive modification
+of ranges in code, which can be useful for code clarity when defining a range for random number selection, or for
 rapidly iterating a design.
-- `IntRange.random(random: java.util.Random)` allows using a Java Random to select a number from the range, and is 
-provided in case there is a need to use the `MathUtils.random` instance or an instance of LibGDX's fast RandomXS128.
+- `IntRange.random(random: java.util.Random)` allows using a Java Random to select a number from the range, and is
+provided in case there is a need to use the `MathUtils.random` instance or an instance of libGDX's fast RandomXS128.
 - `ClosedRange<Float>.random()` allows a evenly distributed random number to be selected from a range (but treating
 the `endInclusive` as exclusive for simplicity).
 - `ClosedRange<Float>.randomGaussian()` selects a normally distributed value to be selected from the range, scaled so the
@@ -188,7 +205,7 @@ a `normalizedMode` can be passed for asymmetrical distributions.
 
 ##### Usage examples
 
-Suppose there is a class that has a random behavior. Its can be constructed by passing several ranges to its constructor.
+Suppose there is a class that has a random behavior. It can be constructed by passing several ranges to its constructor.
 
 ```kotlin
 class CreatureSpawner(val spawnIntervalRange: ClosedRange<Float>) {
@@ -223,16 +240,26 @@ val spawners = listOf(
 )
 ```
 
+#### `Shape2D` extensions
+
+- `Rectangle` and `Ellipse` instances can be destructed to four float variables in one step with
+  `val (x, y, w, h) = rectangle/ellipse` syntax thanks to `component1()`, `component2()`, `component3()` and `component4()` operator methods.
+- `Circle` instances can be destructed to three float variables in one step with
+  `val (x, y, radius) = circle` syntax thanks to `component1()`, `component2()` and `component3()` operator methods.
+- `Polygon` and `Polyline` instances can be destructed to two float variables in one step with
+  `val (x, y) = polygon/polyline` syntax thanks to `component1()` and `component2()` operator methods.
+
 ### Alternatives
 
-You can use LibGDX APIs directly or rely on third-party math libraries:
+You can use libGDX APIs directly or rely on third-party math libraries:
 
 - [Kotlin Statistics](https://github.com/thomasnield/kotlin-statistics) contains idiomatic Kotlin wrappers over
 [Apache Commons Math](http://commons.apache.org/proper/commons-math/userguide/stat.html). Its extension functions might
 prove useful during game development.
-- [Jvm Glm](https://github.com/kotlin-graphics/glm) is the kotlin port of the famous [glm](https://github.com/g-truc/glm) lib by g-truc.
+- [Jvm Glm](https://github.com/kotlin-graphics/glm) is a Kotlin port of the [glm](https://github.com/g-truc/glm)
+lib by `g-truc`.
 
 #### Additional documentation
 
-- [LibGDX math utilities article.](https://github.com/libgdx/libgdx/wiki/Math-utilities)
-- [`Vectors` and `Matrices` article.](https://github.com/libgdx/libgdx/wiki/Vectors%2C-matrices%2C-quaternions)
+- [Official libGDX math utilities article.](https://libgdx.com/wiki/math-utils/math-utilities)
+- [`Vectors` and `Matrices` article.](https://libgdx.com/wiki/math-utils/vectors-matrices-quaternions)

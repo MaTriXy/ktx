@@ -1,4 +1,4 @@
-[![VisUI](https://img.shields.io/badge/vis--ui-1.4.4-blue.svg)](https://github.com/kotcrab/vis-ui)
+[![VisUI](https://img.shields.io/badge/vis--ui-1.5.5-blue.svg)](https://github.com/kotcrab/vis-ui)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-vis.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-vis)
 
 # KTX: VisUI type-safe builders
@@ -7,14 +7,14 @@ Utilities for creating [VisUI](https://github.com/kotcrab/vis-ui) widgets using 
 
 ### Why?
 
-While LibGDX layout managers are simple enough to use directly in Kotlin or Java, their usage usually leads to overly
+While libGDX layout managers are simple enough to use directly in Kotlin or Java, their usage usually leads to overly
 verbose code. GUI layouts presented in HTML, XML and other readable markup languages are easier to reason about than
 cluttered Java code. Fortunately, Kotlin [type-safe builders](https://Kotlinlang.org/docs/reference/type-safe-builders.html)
-allow to write DSL that is both as readable as markup languages and as powerful as Java.
+allow writing a DSL that is both as readable as a markup language and as powerful as a programming language.
 
 ### Guide
 
-This modules extends [`ktx-scene2d`](../scene2d), providing additional factory methods for the following VisUI widgets:
+This module extends [`ktx-scene2d`](../scene2d), providing additional factory methods for the following VisUI widgets:
 
 * *Root* actors:
   * `visDialog`
@@ -24,10 +24,9 @@ This modules extends [`ktx-scene2d`](../scene2d), providing additional factory m
   * _Designed_ to store actors and control their layout:
     * `visTable`
     * `visTree`
-    * `horizontalFlowGroup`
-    * `verticalFlowGroup`
     * `gridGroup`
     * `floatingGroup`
+    * `flowGroup`
     * `dragPane`
     * `visScrollPane`
     * `visSplitPane`
@@ -64,6 +63,18 @@ This modules extends [`ktx-scene2d`](../scene2d), providing additional factory m
   * `tabbedPane`
 
 Please refer to [`ktx-scene2d`](../scene2d) documentation for general info about GUI builders.
+
+#### Using default VisUI skin
+
+Before using the VisUI widgets, make sure that the VisUI skin is initiated and set as the default skin used by the DSL
+factory methods:
+
+```kotlin
+VisUI.load()
+Scene2DSkin.defaultSkin = VisUI.getSkin()
+```
+
+See the VisUI documentation for the skin loading options.
 
 #### Tooltips
 
@@ -102,7 +113,7 @@ fun createMenu(stage: Stage) {
       }
     }
   }
-  menu.showMenu(stage, 0f, 0f) 
+  menu.showMenu(stage, 0f, 0f)
 }
 ```
 
@@ -337,38 +348,16 @@ Consider using [`ktx-actors`](../actors) module to improve event handling with l
 
 [`ktx-vis-style`](../vis-style) adds DSL for defining custom VisUI widget styles.
 
-### Migration guide
-
-Since `1.9.10-b6`, `ktx-vis` extends the [`ktx-scene2d`](../scene2d) module. If you are migrating from a previous
-`ktx-vis` version, see the `ktx-scene2d` migration guide first.
-
-Additionally to changes that apply to `ktx-scene2d`, `ktx-vis` was rewritten to match the `ktx-scene2d` API.
-Notable changes include:
-
-* All factory methods for VisUI widgets are now inlined.
-* `vis` prefix was added to the names of some VisUI widget factory methods to avoid clashes with Scene2D 
-and better reflect the widget class names. A complete list is available in the change log. 
-* Parental actors including `collapsible`, `dragPane`, `horizontalCollapsible`, `visScrollPane`, `visSplitPane` and
-`multiSplitPane` now do not require passing widgets to their factory methods. Instead, widgets are either automatically
-created or can be defined as nested children with the same DSL.
-* `DEFAULT_STYLE` constant is removed in favor of `defaultStyle` from `ktx-scene2d`.
-* `styleName` parameters in factory methods were renamed to `style` for consistency with `ktx-scene2d`.
-* `@VisDsl` DSL marker is replaced with `@Scene2dDsl` marker from `ktx-scene2d`.
-
-Since `ktx-vis` required a complete rewrite and had to match `ktx-scene2d` API, there is no intermediate version with
-deprecated methods. All legacy APIs were removed in `1.9.10-b6`. Please refer to the [change log](../CHANGELOG.md)
-for a complete list of changes.
-
 ### Alternatives
 
 - Creating layouts with [VisUI](https://github.com/kotcrab/vis-editor/wiki/VisUI) directly in Kotlin or Java.
-- [LibGDX Markup Language](https://github.com/czyzby/gdx-lml/tree/master/lml) allows to build `Scene2D` views using
-HTML-like syntax. It also features a [VisUI extension](https://github.com/czyzby/gdx-lml/tree/master/lml-vis). However,
-it lacks first-class Kotlin support and the flexibility of a powerful programming language.
+- [LML](https://github.com/czyzby/gdx-lml/tree/master/lml) allows building `Scene2D` views using HTML-like syntax.
+It also features a [VisUI extension](https://github.com/czyzby/gdx-lml/tree/master/lml-vis). However, it lacks
+first-class Kotlin support and the flexibility of a programming language.
 
 #### Additional documentation
 
 - [VisUI wiki.](https://github.com/kotcrab/vis-editor/wiki/VisUI)
-- [Scene2D article.](https://github.com/libgdx/libgdx/wiki/Scene2d)
-- [Scene2D UI article.](https://github.com/libgdx/libgdx/wiki/Scene2d.ui)
-- [`Table` article.](https://github.com/libgdx/libgdx/wiki/Table)
+- [Scene2D article.](https://libgdx.com/wiki/graphics/2d/scene2d/scene2d)
+- [Scene2D UI article.](https://libgdx.com/wiki/graphics/2d/scene2d/scene2d-ui)
+- [`Table` article.](https://libgdx.com/wiki/graphics/2d/scene2d/table)

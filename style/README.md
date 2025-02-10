@@ -1,22 +1,22 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-style.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-style)
 
-# KTX: style builders
+# KTX: Style builders
 
 Type-safe builders of official Scene2D widget styles.
 
 ### Why?
 
-While creating widget styles in Java is possible, it usually turns out to be too verbose. LibGDX provides an alternative -
+While creating widget styles in Java is possible, it usually turns out to be too verbose. libGDX provides an alternative -
 `Skin` class and its JSON loader. Thanks to reflection, you can define your styles in a single concise JSON file and load
 them at runtime. This is fine most of the time, but this approach does have its issues: the two obvious ones being
-reflection usage and no validation during writing. You basically find out about your typos at runtime, as there seems
-to be no schema that the JSON could be validated against and no official editors with code completion. JSON format also
-suffers from no extension mechanism, which leads to data duplication.
+reflection usage and no validation or code completion during writing. You basically find out about your typos at runtime,
+as there seems to be no schema that the JSON could be validated against and no official editors with code completion.
+JSON format also suffers from no extension mechanism, which leads to data duplication.
 
 Kotlin type-safe builders can make style definitions less verbose than usual, as easily readable as JSON and basically
 as fast to parse as hand-written Java code thanks to inlined functions and no reflection usage. By converting your JSON
 skins into `ktx-style` builders, you speed up your application startup time.
- 
+
 ### Guide
 
 `Skin` instances can be constructed with `skin` functions, both of which accept a Kotlin-style init block.
@@ -27,7 +27,7 @@ used for all kinds of resources that can be stored in a `Skin`.
 
 `get` and `set` operator functions were added. `Skin` assets can now be accessed with brace operators:
 
-```Kotlin
+```kotlin
 val skin = Skin()
 skin["name"] = BitmapFont()
 val font: BitmapFont = skin["name"]
@@ -39,7 +39,7 @@ instance of `BitmapFont` class is requested.
 
 Additional methods were also added to leverage type inference and skip `Class` parameters:
 
-```Kotlin
+```kotlin
 val res: Resource? = skin.optional("name")
 val found = skin.has<Resource>("name")
 
@@ -69,7 +69,7 @@ Signature of every extension method is pretty much the same - they consume 3 par
 `"default"`), optional name of extended style and an init block, which is usually passed as a Kotlin lambda. If a name
 of existing style name is given as the `extend` parameter, the new style will copy its properties.
 
-Currently supported extension methods include:
+Currently, the supported extension methods include:
 
 `Skin` method | Style class
 :---: | ---
@@ -92,10 +92,12 @@ Currently supported extension methods include:
 `tree` | `com.badlogic.gdx.scenes.scene2d.ui.Tree.TreeStyle`
 `window` | `com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle`
 
+To use the DSL on an existing `Skin` instance, use the `Skin.register` extension method.
+
 ### Usage examples
 
 Creating a new empty `Skin`:
-```Kotlin
+```kotlin
 import ktx.style.*
 
 val skin = skin {
@@ -104,32 +106,34 @@ val skin = skin {
 ```
 
 Creating a new `Skin` with drawables extracted from a `TextureAtlas`:
-```Kotlin
+```kotlin
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import ktx.style.*
 
 val skin = skin(TextureAtlas(Gdx.files.internal("skin.atlas"))) {
   // Customize skin here.
-  // Tip: ktx-assets could make the TextureAtlas loading much nicer.
+
+  // Tip: ktx-assets or ktx-assets-async are preferred for loading assets.
 }
 ```
 
 Extending an existing `Skin`:
-```Kotlin
+```kotlin
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import ktx.style.*
 
 val skin = Skin()
 
-// All style builders are regular extension methods,
+// All style builders are standard extension methods,
 // so they can be used directly on a `Skin` instance:
 skin.label {
   // Define your label style here.
 }
 
-// Style definitions can also be wrapped in a block such as apply:
-skin.apply {
+// Style definitions can also be wrapped in a block
+// such as apply or register:
+skin.register {
   button {
     // Define your button style here.
   }
@@ -137,7 +141,7 @@ skin.apply {
 ```
 
 Creating a new `LabelStyle` with `"default"` name:
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import ktx.style.*
@@ -151,7 +155,7 @@ skin {
 ```
 
 Defining colors:
-```Kotlin
+```kotlin
 import ktx.style.*
 
 skin {
@@ -163,12 +167,12 @@ skin {
 ```
 
 Creating a new `ButtonStyle` named `"default"` with drawables extracted from the atlas:
-```Kotlin
+```kotlin
 import ktx.style.*
 
 skin(myAtlas) {
   // Skin is available under `it` parameter, so you can access other resources.
-  button { 
+  button {
     up = it["buttonUp"] // Automatically extracts drawable with buttonUp name.
     down = it["buttonDown"]
   }
@@ -177,7 +181,7 @@ skin(myAtlas) {
 
 Creating a new `ButtonStyle` named `"toggle"` that extends style with `"default"` name (it inherits its properties and
 allows to override them):
-```Kotlin
+```kotlin
 import ktx.style.*
 
 skin(myAtlas) {
@@ -192,7 +196,7 @@ skin(myAtlas) {
 ```
 
 Reusing an existing style - passing a `LabelStyle` instance to `TooltipStyle`:
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import ktx.style.*
@@ -211,14 +215,14 @@ skin(myAtlas) {
 
 Nested style definitions with renamed `skin` parameter - creating a `LabelStyle` and a `Color` on demand to customize
 `TooltipStyle` (all three resources will be available in the skin afterwards):
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.Color
 import ktx.style.*
 
 skin(myAtlas) { skin ->
   textTooltip {
     label = skin.label("tooltipText") {
-      font = skin["arial"]
+      font = skin["lsans"]
       fontColor = skin.color("black", 0f, 0f, 0f)
     }
     background = skin["tooltipBackground"]
@@ -227,7 +231,7 @@ skin(myAtlas) { skin ->
 ```
 
 Extracting resources from the skin - getting instances of previously created styles for `SelectBoxStyle`:
-```Kotlin
+```kotlin
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane.ScrollPaneStyle
 import ktx.style.*
 
@@ -249,7 +253,7 @@ skin {
 ```
 
 Adding custom widget style with similar Kotlin builder syntax:
-```Kotlin
+```kotlin
 import ktx.style.*
 
 skin {
@@ -261,16 +265,16 @@ skin {
 
 #### Implementation tip: type-safe style assets
 
-As long as you use strings for the IDs, its hard to call the API truly type-safe. After all, what's stopping you from
-trying to extract a `Drawable` or `Color` that does not exist? Same applies to creating actors: they usually consume
-a `String` parameter as style name and it's not validated at compile time if the style _actually exists_. However, if
-you're willing to put some extra effort into styles building and keep a certain programming rule, you can get fully
-type-safe GUI building with ease.
+As long as you use strings for the IDs, it is hard to call the API truly type-safe. After all, what is stopping you
+from trying to extract a `Drawable` or `Color` that does not exist or is stored under a different type in the `Skin`?
 
-The secret is to keep all your expected data in enums and (over)use Kotlin syntax sugar to make the code as natural as
-possible. For example, take a look at these `ButtonStyle` definitions:
+Same applies to creating actors: they usually consume a `String` parameter as style name and it is not validated
+at compile time if the style _actually exists_. However, if you are willing to put some extra effort into styles
+building, you can improve the safety of your GUI building code.
 
-```Kotlin
+You can leverage Kotlin enums to do just that. For example, take a look at these `ButtonStyle` definitions:
+
+```kotlin
 button {
   up = it["buttonUp"]
   down = it["buttonDown"]
@@ -280,11 +284,11 @@ button("toggle", extend = defaultStyle) {
 }
 ```
 
-Since they use plain strings as drawable names and there's no magic going on, we can safely assume that these could be
-converted into enum values - preferably listing _all_ drawables in the atlas:
+Since they use plain strings as drawable names, we can safely assume that these could be converted into enum values -
+preferably listing _all_ drawables in the atlas:
 
-```Kotlin
-package your.company
+```kotlin
+package your.app
 
 enum class Drawables {
   buttonUp,
@@ -298,8 +302,8 @@ Along with a static import, this brings our type-safe boilerplate to a pleasant 
 While we're at it, it makes sense to list all styles with non-default
 name to provide validation when invoking actor constructors:
 
-```Kotlin
-package your.company
+```kotlin
+package your.app
 
 enum class Buttons {
   toggle; // Add all non-default ButtonStyle names.
@@ -308,15 +312,16 @@ enum class Buttons {
 }
 ```
 
-`invoke` operator above allows to, well, _invoke_ enum instances like any function to obtain their name -
-for example: `Buttons.toggle()`. 
+`invoke` operator above allows to _invoke_ enum instances like any function to obtain their name -
+for example: `Buttons.toggle()`. This is just a syntax sugar that will shorten style definitions.
+You can skip it altogether and call `toString()`.
 
 Let's sum it up and refactor the `ButtonStyle` definitions:
 
-```Kotlin
+```kotlin
 import ktx.style.*
-import your.company.Buttons
-import your.company.Drawables.*
+import your.app.Buttons
+import your.app.Drawables.*
 
 skin(myAtlas) {
   button {
@@ -329,33 +334,35 @@ skin(myAtlas) {
 }
 ```
 
-What's best about it, enums do not necessarily make your code _longer_ or less readable - all while having the 
-advantage of powerful code completion of your IDE of choice and validation at compile time. As long as you 
-don't need to create assets at runtime with custom unpredictable IDs, we encourage you to store your drawables,
-fonts, colors and non-default styles names as enums to ensure complete safely at compile time.
+What is best about it, enums do not necessarily make your code _longer_ or less readable - all while having the
+advantage of powerful code completion of your IDE of choice and validation at compile time. As long as you
+do not need to create assets at runtime with custom string IDs, we encourage you to store your drawables,
+fonts, colors and styles names as enums to ensure safely at compile time.
 
-The advantage of using an `enum` over a "standard" singleton (`object`) with `String` properties or `String` 
+The advantage of using an `enum` over a "standard" singleton (`object`) with `String` properties or `String`
 constants is that you can easily extract a list of all values from an `enum`, while getting all fields from
-an object or constants from a package is not trivial.
+an object or constants from a package requires reflection.
 
 #### Synergy
 
 [`ktx-assets`](../assets) or [`ktx-assets-async`](../assets-async) might prove useful for loading and management
 of `Skin` assets including `Textures` and `TextureAtlases`.
 
+[`ktx-scene2d`](../scene2d) can be used to build Scene2D views using the defined widget styles.
+
 ### Alternatives
 
-- Default LibGDX JSON skin loading mechanism allows to customize `Skin` instances thanks to reflection. Apart from the
+- Default libGDX JSON skin loading mechanism allows customizing `Skin` instances thanks to reflection. Apart from the
 issues listed in the introduction, it does have an advantage over type-safe builders: skins can be reloaded without
 recompilation of the application, allowing for GUI tweaks without restarting. While a certainly useful feature during
 prototyping phase, it also requires the developer to prepare `Skin` reloading and GUI rebuilding code to make it work.
-- [USL](https://github.com/kotcrab/VisEditor/wiki/USL) is a DSL that compiles to LibGDX JSON skin files. While similar
+- [USL](https://github.com/kotcrab/VisEditor/wiki/USL) is a DSL that compiles to libGDX JSON skin files. While similar
 to JSON in structure, it adds some more features like packages handling and style inheritance. Furthermore, it features
 no runtime overhead, as it is translated to plain skin JSON data. Its style inheritance mechanism might prove more
 flexible than `ktx-style`, as you can extend styles even if they do not share the same class. However, since it relies
-on LibGDX JSON skin loading (based on reflection) and currently contains no editor capable of code completion, it still
-suffers from the same issues as regular JSON.
+on libGDX JSON skin loading (based on reflection) and currently contains no editor capable of code completion, it still
+suffers from the same issues as regular skin JSON.
 
 #### Additional documentation
 
-- [`Skin` article.](https://github.com/libgdx/libgdx/wiki/Skin)
+- [`Skin` article.](https://libgdx.com/wiki/graphics/2d/scene2d/skin)

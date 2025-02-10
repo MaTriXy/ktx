@@ -15,7 +15,7 @@ With Kotlin's reified types and extension methods, the Tiled API can be signific
 #### `MapProperties`
 
 In many maps that you create with Tiled you will need to access the properties defined in the editor.
-They are either defined on map, layer, object, tileset or tile level. The original LibGDX `MapProperties`
+They are either defined on map, layer, object, tileset or tile level. The original libGDX `MapProperties`
 class returns untyped `Object` (or Kotlin's `Any!`) whenever retrieving a property and is therefore not ideal
 and unsafe.
 
@@ -47,7 +47,7 @@ New extension fields include:
 Almost all objects are related to a shape except for  `TextureMapObject`. Sometimes you need
 access to these shapes like e.g. when creating [Box2D](../box2d) bodies out of those objects. For that reason
 a new extension field was added:
-- `shape`: returns the `Shape2D` of a map object. This can either be a `Rectangle`, `Circle`, 
+- `shape`: returns the `Shape2D` of a map object. This can either be a `Rectangle`, `Circle`,
 `Ellipse`, `Polyline` or `Polygon`. If there is an object that is not linked to a shape then a
 `MissingShapeException` is thrown.
 
@@ -73,8 +73,20 @@ the following extensions were added:
 - `contains(layerName: String)`: works as the `in` operator.
 - `layer(layerName: String)`: returns the layer or throws a `MissingLayerException` in case the layer does not exist.
 
-Inlined `forEachMapObject` extension methods allows to iterate over all `MapObject` instances present on the chosen
+Inlined `forEachMapObject` extension method iterates over all `MapObject` instances present on the chosen
 map layer.
+
+Inlined `forEachLayer` extension method iterates over all `MapLayer` instances of a specific type to execute
+a certain function on them.
+
+### `MapLayers` and `MapObjects`
+
+`isEmpty` and `isNotEmpty` extension method to check if the specific collection is empty or not.
+
+### `BatchTiledMapRenderer`
+
+`use` extension method to call `beginRender()` and `endRender()` automatically before
+your render logic.
 
 ### Usage examples
 
@@ -96,11 +108,11 @@ val map: TiledMap = getMap()
 val myFloatProp: Float = mapObj.property("myFloatProperty")
 
 // Retrieves String property with a default value:
-val myProp: String = mapObj.property("myProperty", defaultValue="")
+val myProp: String = mapObj.property("myProperty", defaultValue = "")
 
 // The explicit type can be omitted as it is automatically derived from the type of the default value.
 // myProp2 is of type Float
-val myProp2 = mapLayer.property("myProperty2", defaultValue=1f)
+val myProp2 = mapLayer.property("myProperty2", defaultValue = 1f)
 
 // Retrieves Int property or null if the property does not exist.
 val myOtherProp: Int? = map.propertyOrNull("myOtherProperty")
@@ -187,17 +199,17 @@ import ktx.tiled.*
 
 val map: TiledMap = getTiledMap()
 
-// contains can either be used with the normal syntax
-if(map.contains("enemyLayer")) {
+// Contains can be used either with the regular method call syntax:
+if (map.contains("enemyLayer")) {
     val enemyLayer = map.layer("enemyLayer")
 }
 
-// or with the "in" syntax
-if("collision" in map) {
-    val collisionLayer = map.layer("collision")    
+// Or with the "in" operator:
+if ("collision" in map) {
+    val collisionLayer = map.layer("collision")
 }
 
-// the next line will throw a MissingLayerException if the layer does not exist
+// This will throw a MissingLayerException if the layer does not exist:
 val layer = map.layer("myMapLayer")
 ```
 
@@ -215,8 +227,65 @@ map.forEachMapObject("collision") { mapObj ->
 }
 ```
 
+Iterating over a specific type of layers of a map:
+
+```kotlin
+import com.badlogic.gdx.maps.tiled.TiledMap
+import ktx.tiled.*
+
+val map: TiledMap = getTiledMap()
+
+// Iterate over all object layers and parse them.
+// Note that println is only called with layers of the exact MapLayer type.
+// For example, TiledMapTileLayer - which is a subclass of MapLayer - does not
+// have this exact class and will not be matched.
+map.forEachLayer<MapLayer> { layer ->
+  println(layer)
+}
+```
+
+Checking if `MapLayers` and `MapObjects` collections are empty:
+
+```kotlin
+import com.badlogic.gdx.maps.MapObjects
+import com.badlogic.gdx.maps.tiled.TiledMap
+import ktx.tiled.*
+
+val map: TiledMap = TiledMap()
+
+if (map.layers.isNotEmpty()) {
+  map.layers.forEach { layer ->
+    if (layer.objects.isEmpty()) {
+      // nothing to do if there are no objects
+      return@forEach
+    }
+    parseObjects(layer.objects)
+  }
+}
+```
+
+Using the `use` extension function to render background layers:
+
+```kotlin
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.maps.tiled.TiledMap
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer
+
+val tiledMap = TiledMap()
+val renderer = OrthogonalTiledMapRenderer(tiledMap)
+val camera = OrthographicCamera()
+val bgdLayers: List<TiledMapTileLayer> = tiledMap.layers
+    .filter { it.name.startsWith("bgd") }
+    .filterIsInstance<TiledMapTileLayer>()
+
+renderer.use(camera) { mapRenderer ->
+    bgdLayers.forEach { mapRenderer.renderTileLayer(it) }
+}
+```
+
 #### Additional documentation
 
 - [Official Tiled website.](https://www.mapeditor.org/)
-- [LibGDX wiki article on tile maps.](https://github.com/libgdx/libgdx/wiki/Tile-maps)
+- [Official libGDX tile maps article.](https://libgdx.com/wiki/graphics/2d/tile-maps)
 - [Official Tiled documentation.](https://doc.mapeditor.org/en/stable/)

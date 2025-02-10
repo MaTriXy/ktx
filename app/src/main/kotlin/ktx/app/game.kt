@@ -2,6 +2,7 @@ package ktx.app
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.ObjectMap
 
@@ -13,7 +14,7 @@ import com.badlogic.gdx.utils.ObjectMap
  * screens, without locking into [Screen].
  *
  * @param firstScreen will be immediately used by the application. Note that it cannot use any resources initiated by
- * the LibGDX (like the OpenGL context) in the constructor, as the screen will be created before the application is
+ * the libGDX (like the OpenGL context) in the constructor, as the screen will be created before the application is
  * launched. Defaults to an empty, mock-up screen implementation that should be replaced with the first [setScreen]
  * method call in [create]. Note: `firstScreen` still has to be explicitly registered with [addScreen] if you want it to
  * be accessible with [getScreen].
@@ -22,28 +23,31 @@ import com.badlogic.gdx.utils.ObjectMap
  * @see KtxScreen
  */
 open class KtxGame<ScreenType : Screen>(
-    firstScreen: ScreenType? = null,
-    private val clearScreen: Boolean = true) : KtxApplicationAdapter {
+  firstScreen: ScreenType? = null,
+  private val clearScreen: Boolean = true,
+) : KtxApplicationAdapter {
   /** Holds references to all screens registered with [addScreen]. Allows to get a reference of the screen instance
    * knowing only its type. */
   protected val screens: ObjectMap<Class<out ScreenType>, ScreenType> = ObjectMap()
+
   /** Currently shown screen. Unless overridden with [setScreen], uses an empty mock-up implementation to work around
    * nullability and `lateinit` issues. [shownScreen] is a public property exposing this value as [ScreenType].
    * @see shownScreen */
   protected var currentScreen: Screen = firstScreen ?: emptyScreen()
+
   /** Provides direct access to current [Screen] instance handling game events. */
   open val shownScreen: ScreenType
     @Suppress("UNCHECKED_CAST")
     get() = currentScreen as ScreenType
 
   /**
-   * By default, this method resizes ([Screen.resize]) and shows ([Screen.show]) initial view. You do not have to call
+   * By default, this method shows ([Screen.show]) and resizes ([Screen.resize]) the initial view. You do not have to call
    * super if you used [setScreen] in the overridden [create] method or the selected first view does not need to be
    * resized and showed before usage.
    */
   override fun create() {
-    currentScreen.resize(Gdx.graphics.width, Gdx.graphics.height)
     currentScreen.show()
+    currentScreen.resize(Gdx.graphics.width, Gdx.graphics.height)
   }
 
   override fun render() {
@@ -53,7 +57,10 @@ open class KtxGame<ScreenType : Screen>(
     currentScreen.render(Gdx.graphics.deltaTime)
   }
 
-  override fun resize(width: Int, height: Int) {
+  override fun resize(
+    width: Int,
+    height: Int,
+  ) {
     currentScreen.resize(width, height)
   }
 
@@ -89,7 +96,10 @@ open class KtxGame<ScreenType : Screen>(
    * @see setScreen
    * @see removeScreen
    */
-  open fun <Type : ScreenType> addScreen(type: Class<Type>, screen: Type) {
+  open fun <Type : ScreenType> addScreen(
+    type: Class<Type>,
+    screen: Type,
+  ) {
     !screens.containsKey(type) || throw GdxRuntimeException("Screen already registered to type: $type.")
     screens.put(type, screen)
   }
@@ -114,8 +124,8 @@ open class KtxGame<ScreenType : Screen>(
   open fun <Type : ScreenType> setScreen(type: Class<Type>) {
     currentScreen.hide()
     currentScreen = getScreen(type)
-    currentScreen.resize(Gdx.graphics.width, Gdx.graphics.height)
     currentScreen.show()
+    currentScreen.resize(Gdx.graphics.width, Gdx.graphics.height)
   }
 
   /**
@@ -137,8 +147,8 @@ open class KtxGame<ScreenType : Screen>(
    * @see addScreen
    */
   @Suppress("UNCHECKED_CAST")
-  open fun <Type : ScreenType> getScreen(type: Class<Type>): Type
-      = screens[type] as Type? ?: throw GdxRuntimeException("Missing screen instance of type: $type.")
+  open fun <Type : ScreenType> getScreen(type: Class<Type>): Type =
+    screens[type] as Type? ?: throw GdxRuntimeException("Missing screen instance of type: $type.")
 
   /**
    * Removes cached instance of [Screen] of the selected type. Note that this method does not dispose of the screen and
@@ -174,9 +184,9 @@ open class KtxGame<ScreenType : Screen>(
   open fun <Type : ScreenType> containsScreen(type: Class<Type>): Boolean = screens.containsKey(type)
 
   /**
-   * Disposes of all registered screens with [Screen.dispose]. Catches thrown errors and logs them with LibGDX
+   * Disposes of all registered screens with [Screen.dispose]. Catches thrown errors and logs them with libGDX
    * application API by default. Override [onScreenDisposalError] method to change error handling behavior. Should be
-   * called automatically by LibGDX application lifecycle handler.
+   * called automatically by libGDX application lifecycle handler.
    */
   override fun dispose() {
     screens.values().forEach {
@@ -193,22 +203,39 @@ open class KtxGame<ScreenType : Screen>(
    * @param screen thrown [exception] during disposal.
    * @param exception unexpected screen disposal exception.
    */
-  protected open fun onScreenDisposalError(screen: ScreenType, exception: Throwable) {
+  protected open fun onScreenDisposalError(
+    screen: ScreenType,
+    exception: Throwable,
+  ) {
     Gdx.app.error("KTX", "Unable to dispose of ${screen.javaClass} screen.", exception)
   }
 }
 
 /**
  * Provides empty implementations of all [Screen] methods, making them optional to override.
+ *
+ * Explicitly extends the [Disposable] interface, matching the [Screen.dispose] method,
+ * which allows to leverage [Disposable] utilities.
  * @see KtxGame
  */
-interface KtxScreen : Screen {
+interface KtxScreen :
+  Screen,
+  Disposable {
   override fun show() = Unit
+
   override fun render(delta: Float) = Unit
-  override fun resize(width: Int, height: Int) = Unit
+
+  override fun resize(
+    width: Int,
+    height: Int,
+  ) = Unit
+
   override fun pause() = Unit
+
   override fun resume() = Unit
+
   override fun hide() = Unit
+
   override fun dispose() = Unit
 }
 

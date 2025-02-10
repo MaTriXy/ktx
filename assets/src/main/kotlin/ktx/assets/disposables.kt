@@ -1,6 +1,8 @@
 package ktx.assets
 
 import com.badlogic.gdx.utils.Disposable
+import java.util.Collections
+import java.util.IdentityHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -57,9 +59,10 @@ fun <Asset : Disposable> Iterable<Asset?>?.disposeSafely() = this?.forEach { it.
  * @param onError will be invoked each time an exception (except for JVM internal [Error]s, which should not be caught
  *    anyway) is thrown during asset disposing.
  */
-inline fun <Asset : Disposable> Iterable<Asset?>?.dispose(onError: (Exception) -> Unit) = this?.forEach {
-  it.dispose(onError)
-}
+inline fun <Asset : Disposable> Iterable<Asset?>?.dispose(onError: (Exception) -> Unit) =
+  this?.forEach {
+    it.dispose(onError)
+  }
 
 /**
  * Allows to dispose a collection of resources implementing [Disposable] interface. Will silently ignore stored nulls.
@@ -81,9 +84,10 @@ fun <Asset : Disposable> Array<Asset>?.disposeSafely() = this?.forEach { it.disp
  * @param onError will be invoked each time an exception (except for JVM internal [Error]s, which should not be caught
  *    anyway) is thrown during asset disposing.
  */
-inline fun <Asset : Disposable> Array<Asset>?.dispose(onError: (Exception) -> Unit) = this?.forEach {
-  it.dispose(onError)
-}
+inline fun <Asset : Disposable> Array<Asset>?.dispose(onError: (Exception) -> Unit) =
+  this?.forEach {
+    it.dispose(onError)
+  }
 
 /**
  * This method does nothing. This is a null-safe call that allows to clearly mark an exception as ignored. This approach
@@ -97,4 +101,94 @@ inline fun <Asset : Disposable> Array<Asset>?.dispose(onError: (Exception) -> Un
  */
 @Suppress("unused", "NOTHING_TO_INLINE")
 inline fun Throwable?.ignore() {
+}
+
+/**
+ * Interface describing a container for [Disposable]s that provides functions for disposing all
+ * its registered items. An implementing class's Disposable declarations can be tagged with
+ * [.alsoRegister()][alsoRegister] to conveniently register them as they are instantiated and assigned.
+ *
+ * Calling [dispose] on the registry will call [Disposable.dispose] on all its registered members.
+ *
+ * The existing implementation [DisposableContainer] can be extended or used as a delegate to implement
+ * this interface.
+ *
+ * Note that since [DisposableRegistry] implements [Disposable], registries can be stacked within each other -
+ * a registry might contain other registries, keeping track of nested assets.
+ */
+interface DisposableRegistry : Disposable {
+  /**
+   * A copy of the registered Disposables. The order does not necessarily represent the registration order.
+   */
+  val registeredDisposables: List<Disposable>
+
+  /**
+   * Registers [disposable] with this registry.
+   * @return true if the item was successfully registered or false if it was already registered.
+   */
+  fun register(disposable: Disposable): Boolean
+
+  /**
+   * Removes [disposable] from this registry.
+   * @return true if the item was successfully removed or false if it was not in the registry.
+   */
+  fun deregister(disposable: Disposable): Boolean
+
+  /**
+   * Removes all disposables from the registry without disposing them.
+   * @return true if any items were in the registry.
+   */
+  fun deregisterAll(): Boolean
+
+  /**
+   * Calls [dispose][Disposable.dispose] on each registered [Disposable].
+   * Might throw an exception if the assets were already disposed. To prevent that and clear the registry,
+   * use [deregisterAll].
+   *
+   * @see Disposable.dispose
+   */
+  override fun dispose()
+
+  /**
+   * Register this [Disposable] with the [DisposableRegistry].
+   * @return this object.
+   */
+  fun <T : Disposable> T.alsoRegister(): T {
+    register(this)
+    return this
+  }
+
+  /**
+   * Remove this [Disposable] from the [DisposableRegistry] if it is already registered.
+   * @return this object.
+   */
+  fun <T : Disposable> T.alsoDeregister(): T {
+    deregister(this)
+    return this
+  }
+}
+
+/**
+ * An implementation of [DisposableRegistry] that can be subclassed or used as a delegate.
+ * Allows to store and dispose of multiple [Disposable] instances.
+ *
+ * @see DisposableRegistry
+ */
+open class DisposableContainer : DisposableRegistry {
+  private val registry: MutableSet<Disposable> = Collections.newSetFromMap(IdentityHashMap())
+  override val registeredDisposables: List<Disposable> get() = registry.toList()
+
+  override fun register(disposable: Disposable): Boolean = registry.add(disposable)
+
+  override fun deregister(disposable: Disposable): Boolean = registry.remove(disposable)
+
+  override fun deregisterAll(): Boolean {
+    val hadItems = registry.isNotEmpty()
+    registry.clear()
+    return hadItems
+  }
+
+  override fun dispose() {
+    registry.dispose()
+  }
 }

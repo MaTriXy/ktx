@@ -2,12 +2,12 @@
 
 # KTX: FreeType font utilities
 
-A tiny modules that makes it easier to use [`gdx-freetype`](https://github.com/libgdx/libgdx/wiki/Gdx-freetype) library.
+A tiny modules that makes it easier to use [`gdx-freetype`](https://libgdx.com/wiki/extensions/gdx-freetype) library.
 
 ### Why?
 
-`gdx-freetype` requires quite a bit of setup before it can be fully integrated with LibGDX `AssetManager`. This module
-aims to limit the boilerplate necessary to load FreeType fonts in LibGDX applications.
+`gdx-freetype` requires quite a bit of setup before it can be fully integrated with libGDX `AssetManager`. This module
+aims to limit the boilerplate necessary to load FreeType fonts in libGDX applications.
 
 ### Guide
 
@@ -18,8 +18,10 @@ font assets. It should be called right after constructing a `AssetManager` insta
 * Extension method `AssetManager.loadFreeTypeFont` allows to easily configure loaded `BitmapFont` instances with Kotlin
 DSL.
 * `freeTypeFontParameters` function is a Kotlin DSL for customizing font loading parameters.
-* `FreeTypeFontGenerator.generateFont` extension function allows to generate `BitmapFont` instances using a
+* `FreeTypeFontGenerator.generateFont` extension function generates `BitmapFont` instances using a
 `FreeTypeFontGenerator` with Kotlin DSL.
+
+In order to use this module, `com.badlogicgames.gdx:gdx-freetype` dependency has to be added to the `core` project.
 
 ### Usage examples
 
@@ -117,7 +119,7 @@ fun getFontParameters(): FreeTypeFontLoaderParameter = freeTypeFontParameters("f
 }
 ```
 
-Generating a new `BitmapFont` using LibGDX `FreeTypeFontGenerator`:
+Generating a new `BitmapFont` using libGDX `FreeTypeFontGenerator`:
 
 ```kotlin
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
@@ -139,9 +141,9 @@ This module uses [`ktx-assets`](../assets) internally to improve `AssetManager` 
 ### Alternatives
 
 FreeType font loaders can be registered manually. See
-[this article](https://github.com/libgdx/libgdx/wiki/Managing-your-assets#loading-a-ttf-using-the-assethandler).
+[this article](https://libgdx.com/wiki/managing-your-assets#loading-a-ttf-using-the-assethandler).
 
 #### Additional documentation
 
-- [`gdx-freetype` article.](https://github.com/libgdx/libgdx/wiki/Gdx-freetype)
-- [`AssetManager` article.](https://github.com/libgdx/libgdx/wiki/Managing-your-assets#loading-a-ttf-using-the-assethandler)
+- [`gdx-freetype` article.](https://libgdx.com/wiki/extensions/gdx-freetype)
+- [`AssetManager` article.](https://libgdx.com/wiki/managing-your-assets#loading-a-ttf-using-the-assethandler)

@@ -11,37 +11,57 @@ import kotlin.contracts.contract
 /**
  * Stores a [String] [value] under the given [key] in the [Preferences].
  */
-operator fun Preferences.set(key: String, value: String): Preferences = putString(key, value)
+operator fun Preferences.set(
+  key: String,
+  value: String,
+): Preferences = putString(key, value)
 
 /**
  * Stores a [Boolean] [value] under the given [key] in the [Preferences].
  */
-operator fun Preferences.set(key: String, value: Boolean): Preferences = putBoolean(key, value)
+operator fun Preferences.set(
+  key: String,
+  value: Boolean,
+): Preferences = putBoolean(key, value)
 
 /**
  * Stores an [Int] [value] under the given [key] in the [Preferences].
  */
-operator fun Preferences.set(key: String, value: Int): Preferences = putInteger(key, value)
+operator fun Preferences.set(
+  key: String,
+  value: Int,
+): Preferences = putInteger(key, value)
 
 /**
  * Stores a [Long] [value] under the given [key] in the [Preferences].
  */
-operator fun Preferences.set(key: String, value: Long): Preferences = putLong(key, value)
+operator fun Preferences.set(
+  key: String,
+  value: Long,
+): Preferences = putLong(key, value)
 
 /**
  * Stores a [Float] [value] under the given [key] in the [Preferences].
  */
-operator fun Preferences.set(key: String, value: Float): Preferences = putFloat(key, value)
+operator fun Preferences.set(
+  key: String,
+  value: Float,
+): Preferences = putFloat(key, value)
 
 /**
  * Stores a [Double] [value] as [Float] under the given [key] in the [Preferences].
- * Throws [GdxRuntimeException] if [value] is outside of the [Float] range.
+ * Throws [GdxRuntimeException] if [value] is outside the [Float] range.
  */
 @Deprecated(
-  message = "Doubles are not supported by LibGDX Preferences. " +
-    "Value will be stored as Float instead. Please add explicit cast.",
-  replaceWith = ReplaceWith("set(key, value.toFloat()"))
-operator fun Preferences.set(key: String, value: Double): Preferences = putFloat(key, value.asFloat())
+  message =
+    "Doubles are not supported by libGDX Preferences. " +
+      "Value will be stored as Float instead. Please add explicit cast.",
+  replaceWith = ReplaceWith("set(key, value.toFloat()"),
+)
+operator fun Preferences.set(
+  key: String,
+  value: Double,
+): Preferences = putFloat(key, value.asFloat())
 
 private fun Double.asFloat(): Float {
   if (this < Float.MIN_VALUE.toDouble() || this > Float.MAX_VALUE.toDouble()) {
@@ -58,7 +78,10 @@ private fun Double.asFloat(): Float {
  * and excessive object creation might be a concern, consider manual serialization and storing the
  * value as a [String].
  */
-operator fun Preferences.set(key: String, value: Any): Preferences = putString(key, Json().toJson(value))
+operator fun Preferences.set(
+  key: String,
+  value: Any,
+): Preferences = putString(key, Json().toJson(value))
 
 /**
  * Stores any value under the given key in the [Preferences]. The first value of the [pair] is considered
@@ -108,14 +131,18 @@ fun Preferences.set(pair: Pair<String, Any>): Preferences {
  * Will return `null` if the key is absent in the [Preferences].
  */
 inline operator fun <reified T> Preferences.get(key: String): T? =
-  if (key !in this) null else when (T::class) {
-    String::class -> getString(key) as T
-    Boolean::class -> getBoolean(key) as T
-    Int::class -> getInteger(key) as T
-    Float::class -> getFloat(key) as T
-    Double::class -> getFloat(key).toDouble() as T
-    Long::class -> getLong(key) as T
-    else -> Json().fromJson(T::class.java, getString(key))
+  if (key !in this) {
+    null
+  } else {
+    when (T::class) {
+      String::class -> getString(key) as T
+      Boolean::class -> getBoolean(key) as T
+      Int::class -> getInteger(key) as T
+      Float::class -> getFloat(key) as T
+      Double::class -> getFloat(key).toDouble() as T
+      Long::class -> getLong(key) as T
+      else -> Json().fromJson(T::class.java, getString(key))
+    }
   }
 
 /**
@@ -133,8 +160,10 @@ inline operator fun <reified T> Preferences.get(key: String): T? =
  * and converted to [Double]. Consider using a JSON-serializable object if you need to store [Double] values
  * with high precision.
  */
-inline operator fun <reified T> Preferences.get(key: String, defaultValue: T): T =
-  if (key in this) this[key]!! else defaultValue
+inline operator fun <reified T> Preferences.get(
+  key: String,
+  defaultValue: T,
+): T = this[key] ?: defaultValue
 
 /**
  * Calls [Preferences.flush] after executing the given [operations].

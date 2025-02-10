@@ -2,6 +2,7 @@ package ktx.ashley
 
 import com.badlogic.ashley.core.Component
 import com.badlogic.ashley.core.Engine
+import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.PooledEngine
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
@@ -23,7 +24,9 @@ object EnginesSpec : Spek({
     }
     describe("creating a component without a no-arg constructor") {
       @Suppress("UNUSED_PARAMETER")
-      class MissingNoArgConstructorComponent(body: String) : Component
+      class MissingNoArgConstructorComponent(
+        body: String,
+      ) : Component
 
       it("should throw an exception if the non-pooled engine was unable to create the component") {
         val nonPooledEngine = Engine()
@@ -46,22 +49,25 @@ object EnginesSpec : Spek({
       }
       it("should throw an exception if the non-pooled engine was unable to create the corrupted component") {
         val nonPooledEngine = Engine()
-        assertThatExceptionOfType(CreateComponentException::class.java).isThrownBy {
-          nonPooledEngine.create<CorruptedComponent>()
-        }.withRootCauseInstanceOf(IllegalStateException::class.java)
+        assertThatExceptionOfType(CreateComponentException::class.java)
+          .isThrownBy {
+            nonPooledEngine.create<CorruptedComponent>()
+          }.withRootCauseInstanceOf(IllegalStateException::class.java)
       }
 
       it("should throw an exception if the pooled engine was unable to create the corrupted component") {
-        assertThatExceptionOfType(CreateComponentException::class.java).isThrownBy {
-          engine.create<CorruptedComponent>()
-        }.withRootCauseInstanceOf(IllegalStateException::class.java)
+        assertThatExceptionOfType(CreateComponentException::class.java)
+          .isThrownBy {
+            engine.create<CorruptedComponent>()
+          }.withRootCauseInstanceOf(IllegalStateException::class.java)
       }
     }
     describe("creating a component with configuration") {
-      val component = engine.create<Transform> {
-        x = 1f
-        y = 2f
-      }
+      val component =
+        engine.create<Transform> {
+          x = 1f
+          y = 2f
+        }
       it("should create a pooled component with reified type") {
         assertThat(component.x).isEqualTo(1f)
         assertThat(component.y).isEqualTo(2f)
@@ -148,6 +154,43 @@ object EnginesSpec : Spek({
           variable = 42
         }
         assertThat(variable).isEqualTo(42)
+      }
+      it("should configure entities exactly once") {
+        val variable: Int
+        engine.configureEntity(Entity()) {
+          variable = 42
+        }
+        assertThat(variable).isEqualTo(42)
+      }
+    }
+
+    describe("entity configuration with configureEntity") {
+      it("should capture entity and engine") {
+        val assignedEngine: Engine
+        val assignedEntity: Entity
+        val entity = Entity()
+
+        engine.configureEntity(entity) {
+          assignedEngine = this.engine
+          assignedEntity = this.entity
+        }
+
+        assertThat(assignedEngine).isSameAs(engine)
+        assertThat(assignedEntity).isSameAs(entity)
+      }
+      it("should add a component with configuration") {
+        val entity = Entity()
+
+        engine.configureEntity(entity) {
+          with<Transform> {
+            x = 1f
+            y = 2f
+          }
+        }
+
+        val component = entity.getComponent(Transform::class.java)
+        assertThat(component.x).isEqualTo(1f)
+        assertThat(component.y).isEqualTo(2f)
       }
     }
 

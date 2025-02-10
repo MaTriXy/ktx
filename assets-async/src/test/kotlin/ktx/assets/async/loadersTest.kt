@@ -6,12 +6,15 @@ import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.assets.loaders.AssetLoader
 import com.badlogic.gdx.assets.loaders.SynchronousAssetLoader
 import com.badlogic.gdx.files.FileHandle
-import com.nhaarman.mockitokotlin2.doReturn
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
 import io.kotlintest.matchers.shouldThrow
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import java.io.File
 import com.badlogic.gdx.utils.Array as GdxArray
 
@@ -187,9 +190,10 @@ class LoadersTest {
     val file = FileHandle(File("test"))
     val assetDescriptor = AssetDescriptor("test", String::class.java)
     assetDescriptor.file = file
-    val loader = mock<Loader<String>> {
-      on(it.getDependencies("test", file, null)) doReturn dependencies
-    }
+    val loader =
+      mock<Loader<String>> {
+        on(it.getDependencies("test", file, null)) doReturn dependencies
+      }
 
     // When:
     val result = loader.getDependencies(assetDescriptor)
@@ -206,9 +210,10 @@ class LoadersTest {
     val file = FileHandle(File("test"))
     val assetDescriptor = AssetDescriptor("test", String::class.java)
     assetDescriptor.file = file
-    val loader = mock<SynchronousLoader<String>> {
-      on(it.load(assetManager, "test", file, null)) doReturn "Asset."
-    }
+    val loader =
+      mock<SynchronousLoader<String>> {
+        on(it.load(assetManager, "test", file, null)) doReturn "Asset."
+      }
 
     // When:
     val asset = loader.load(assetManager, assetDescriptor)
@@ -225,9 +230,10 @@ class LoadersTest {
     val file = FileHandle(File("test"))
     val assetDescriptor = AssetDescriptor("test", String::class.java)
     assetDescriptor.file = file
-    val loader = mock<AsynchronousLoader<String>> {
-      on(it.loadSync(assetManager, "test", file, null)) doReturn "Asset."
-    }
+    val loader =
+      mock<AsynchronousLoader<String>> {
+        on(it.loadSync(assetManager, "test", file, null)) doReturn "Asset."
+      }
 
     // When:
     loader.loadAsync(assetManager, assetDescriptor)
@@ -256,9 +262,12 @@ class ManualLoaderTest {
   @Test
   fun `should return empty dependencies array with loading parameters`() {
     // When:
-    val dependencies = ManualLoader.getDependencies(
-      "file.path", mock(), ManualLoadingParameters()
-    )
+    val dependencies =
+      ManualLoader.getDependencies(
+        "file.path",
+        mock(),
+        ManualLoadingParameters(),
+      )
 
     // Then:
     assertEquals(GdxArray<AssetDescriptor<*>>(0), dependencies)

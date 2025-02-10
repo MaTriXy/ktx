@@ -48,9 +48,10 @@ infix fun Action.then(action: Action): SequenceAction = Actions.sequence(this, a
  * @return this [SequenceAction].
  * @see plus for a non-mutating alternative.
  */
-infix fun SequenceAction.then(action: Action): SequenceAction = apply {
-  addAction(action)
-}
+infix fun SequenceAction.then(action: Action): SequenceAction =
+  apply {
+    addAction(action)
+  }
 
 /**
  * Wraps this action and the passed action in a [SequenceAction].
@@ -75,9 +76,6 @@ operator fun SequenceAction.plusAssign(action: Action) = addAction(action)
  */
 infix fun Action.along(action: Action): ParallelAction = Actions.parallel(this, action)
 
-@Deprecated("parallelTo has been replaced with along.", ReplaceWith("this along action"), DeprecationLevel.WARNING)
-infix fun Action.parallelTo(action: Action): ParallelAction = along(action)
-
 /**
  * Adds [action] to this [ParallelAction], so long as this isn't a [SequenceAction]. If it is a [SequenceAction],
  * it creates a new [ParallelAction] executing both actions in parallel.
@@ -94,9 +92,6 @@ infix fun ParallelAction.along(action: Action): ParallelAction {
   addAction(action)
   return this
 }
-
-@Deprecated("parallelTo has been replaced with along.", ReplaceWith("this along action"), DeprecationLevel.WARNING)
-infix fun ParallelAction.parallelTo(action: Action): ParallelAction = along(action)
 
 /**
  * Wraps this action and the passed action with a [ParallelAction].

@@ -1,12 +1,12 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.libktx/ktx-graphics.svg)](https://search.maven.org/artifact/io.github.libktx/ktx-graphics)
 
-# KTX: graphics utilities
+# KTX: Graphics utilities
 
-General utilities for handling LibGDX graphics-related API.
+General utilities for handling libGDX graphics-related API.
 
 ### Why?
 
-While LibGDX API is not particularly bad in this case and the **KTX** module provides only minor improvements, 
+While libGDX API is not particularly bad in this case and the **KTX** module provides only minor improvements,
 Kotlin build-in features can greatly simplify some common operations related to graphics and prevent some
 common bugs such as forgetting to start or end batch rendering.
 
@@ -14,16 +14,20 @@ common bugs such as forgetting to start or end batch rendering.
 
 #### Miscellaneous utilities
 
-- `color` factory methods allows to use idiomatic named parameters to construct LibGDX `Color` instances.
-- `copy` extension method added to `Color`. It allows to create a new `Color` with copied color values. Supports values
-overriding with optional, named parameters.
-- `use` inlined extension methods added to `Batch`, `ShaderProgram` and `GLFrameBuffer`. They allow safe omission of the 
-`begin()` and `end()` calls when using batches, shader programs and buffers. Note that a camera or projection matrix can
-also be passed to the `Batch.use` extension function to have it automatically applied to the batch's projection matrix.
+- `use` inlined extension methods added to `Batch`, `ShaderProgram` and `GLFrameBuffer`. They allow safe omission of the
+`begin()` and `end()` calls when using batches, shader programs and buffers. Note that a camera or a matrix can also
+be passed to selected extension methods to have it automatically applied as the projection matrix.
 - `begin` extension methods that automatically set projection matrix from a `Camera` or `Matrix4` were added to `Batch`.
 - `takeScreenshot` allows to easily take a screenshot of current application screen.
-- `BitmapFont.center` extension method allows to calculate center position of text in order to draw it in the middle
+- `BitmapFont.center` extension method allows calculating center position of text in order to draw it in the middle
 of a chosen object.
+
+#### `Color` utilities
+
+- `color` factory methods allows using named parameters to construct libGDX `Color` instances.
+- `copy` extension method added to `Color`. It allows to create a new `Color` with copied color values. Supports
+overriding individual color values with optional named parameters.
+- `Color` instances can be destructed into individual color values.
 
 #### `ShapeRenderer`
 
@@ -51,7 +55,7 @@ and `end()` calls.
 - `Camera.center` extension method allows to center the camera's position to screen center or the center of the chosen rectangle.
 - `Camera.moveTo` extension method allows to move the camera immediately at the chosen target position with optional offset.
 - `Camera.lerpTo` extension method allows to move the camera smoothly to the chosen target position with optional offset.
-- `Camera.update` inlined extension method allows to change camera state with automatic `Camera.update` call.
+- `Camera.update` inlined extension method changes camera state with automatic `Camera.update` call.
 - `LetterboxingViewport` combines `ScreenViewport` and `FitViewport` behavior: it targets a specific aspect ratio and
 applies letterboxing like `FitViewport`, but it does not scale rendered objects when resized, keeping them in fixed size
 similarly to `ScreenViewport`. Thanks to customizable target PPI value, it is ideal for GUIs and can easily support
@@ -61,7 +65,7 @@ different screen sizes.
 
 Using a `Batch`:
 
-```Kotlin
+```kotlin
 import ktx.graphics.*
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -105,7 +109,7 @@ batch.use(camera) {
 
 Using a `ShaderProgram`:
 
-```Kotlin
+```kotlin
 import ktx.graphics.*
 
 shaderProgram.use {
@@ -122,18 +126,18 @@ shaderProgram.use {
 
 Creating `Color` instances:
 
-```Kotlin
-import ktx.app.*
+```kotlin
+import ktx.graphics.*
 
-val color = color(red = 1f, green = 0.5f, blue = 0.75f, alpha = 0.25f)
+val myColor = color(red = 1f, green = 0.5f, blue = 0.75f, alpha = 0.25f)
 // Fourth parameter - alpha - is optional and defaults to 1f:
 val nonTransparentGray = color(0.8f, 0.8f, 0.8f)
 ```
 
 Copying `Color` instances:
 
-```Kotlin
-import ktx.app.*
+```kotlin
+import ktx.graphics.*
 import com.badlogic.gdx.graphics.Color
 
 val blue = Color.BLUE.copy()
@@ -143,11 +147,22 @@ val blue = Color.BLUE.copy()
 val violet = blue.copy(red = 1f)
 ```
 
+Destructing `Color` instances:
+
+```kotlin
+import ktx.graphics.*
+import com.badlogic.gdx.graphics.Color
+
+fun destruct(color: Color) {
+  val (red, green, blue, alpha) = color
+}
+```
+
 Using a `ShapeRenderer`:
 
 ```kotlin
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import ktx.graphics.*
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 
 val shapeRenderer = ShapeRenderer()
 
@@ -163,9 +178,34 @@ shapeRenderer.use(ShapeRenderer.ShapeType.Filled) {
 */
 ```
 
-Using `ShapeRenderer` with vectors: 
 
-```Kotlin
+Using a `ShapeRenderer` with a `Camera`:
+
+```kotlin
+import ktx.graphics.*
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+
+val camera = OrthographicCamera()
+val shapeRenderer = ShapeRenderer()
+
+// Projection matrix will be copied from the camera:
+shapeRenderer.use(ShapeRenderer.ShapeType.Filled, camera) {
+  // Operate on shapeRenderer instance
+}
+
+/* Equivalent to:
+
+  shapeRenderer.projectionMatrix = camera.combined
+  shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+  // Operate on shapeRenderer instance
+  shapeRenderer.end()
+*/
+```
+
+Using `ShapeRenderer` with vectors:
+
+```kotlin
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
 import ktx.graphics.circle
@@ -178,7 +218,7 @@ fun drawCircle(renderer: ShapeRenderer) {
 
 Taking a screenshot of the current game screen:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.Gdx
 import ktx.graphics.takeScreenshot
 
@@ -187,7 +227,7 @@ takeScreenshot(Gdx.files.external("mygame/screenshot.png"))
 
 Finding out where to draw text in order to center it on a `Sprite`:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.math.Vector2
@@ -206,7 +246,7 @@ fun getCenterAtSprite(
 
 Creating and customizing a new `LetterboxingViewport`:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.utils.viewport.Viewport
 import ktx.graphics.LetterboxingViewport
@@ -223,14 +263,14 @@ class Application: ApplicationAdapter() {
 
 Centering camera position:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.OrthographicCamera
 import ktx.graphics.center
 
 fun centerCamera(camera: OrthographicCamera) {
   // Sets position to the middle of the screen:
   camera.center()
-  
+
   // Sets position to the middle of the chosen rectangle:
   camera.center(x = 100f, y = 100f, width = 800f, height = 800f)
 }
@@ -238,7 +278,7 @@ fun centerCamera(camera: OrthographicCamera) {
 
 Moving the camera to a target:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Vector2
 import ktx.graphics.lerpTo
@@ -255,7 +295,7 @@ fun moveCamera(camera: OrthographicCamera, target: Vector2) {
 
 Changing the camera state with automatic update:
 
-```Kotlin
+```kotlin
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Vector2
 import ktx.graphics.lerpTo
@@ -276,15 +316,15 @@ methods and operator overloads.
 
 ### Alternatives
 
-There are some general purpose LibGDX utility libraries out there, but most lack first-class Kotlin support.
+There are some general purpose libGDX utility libraries, but most lack first-class Kotlin support.
 
-- [Kiwi](https://github.com/czyzby/gdx-lml/tree/master/kiwi) is a general purpose Guava-inspired LibGDX Java utilities
+- [Kiwi](https://github.com/czyzby/gdx-lml/tree/master/kiwi) is a general purpose Guava-inspired libGDX Java utilities
 library with some utilities similar to `ktx-graphics`.
 - [Cyberpunk](https://github.com/ImXico/Cyberpunk) framework provides similar utilities for cameras, text and screenshots.
 
 #### Additional documentation
 
-- [`SpriteBatch` official article.](https://github.com/libgdx/libgdx/wiki/Spritebatch%2C-Textureregions%2C-and-Sprites)
-- [Official article on shaders.](https://github.com/libgdx/libgdx/wiki/Shaders)
-- [`ShapeRenderer` official article.](https://github.com/libgdx/libgdx/wiki/Rendering-shapes)
-- [Official article on screenshots.](https://github.com/libgdx/libgdx/wiki/Taking-a-Screenshot)
+- [`SpriteBatch` official article.](https://libgdx.com/wiki/graphics/2d/spritebatch-textureregions-and-sprites)
+- [Official article on shaders.](https://libgdx.com/wiki/graphics/opengl-utils/shaders)
+- [`ShapeRenderer` official article.](https://libgdx.com/wiki/graphics/opengl-utils/rendering-shapes)
+- [Official article on screenshots.](https://libgdx.com/wiki/graphics/taking-a-screenshot)

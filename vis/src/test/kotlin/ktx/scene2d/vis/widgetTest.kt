@@ -11,16 +11,28 @@ import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import io.kotlintest.matchers.shouldThrow
 import io.kotlintest.mock.mock
-import ktx.scene2d.*
-import org.junit.Assert.*
+import ktx.scene2d.ApplicationTest
+import ktx.scene2d.KNode
+import ktx.scene2d.defaultHorizontalStyle
+import ktx.scene2d.defaultStyle
+import ktx.scene2d.defaultVerticalStyle
+import ktx.scene2d.label
+import ktx.scene2d.scene2d
+import ktx.scene2d.table
+import ktx.scene2d.tree
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/* Tests of customized VisUI parent widgets. */
+// Tests of customized VisUI parent widgets.
 
 /**
  * Tests KTX-adapted widget: [KVisTree].
  */
-class KVisTreeTest : NeedsLibGDX() {
+class KVisTreeTest : ApplicationTest() {
   @Test
   fun `should add widget to group and return its node`() {
     val tree = scene2d.visTree()
@@ -50,12 +62,14 @@ class KVisTreeTest : NeedsLibGDX() {
     val tree = scene2d.visTree()
     val icon = mock<Drawable>()
     tree.apply {
-      val node: KNode<Label> = label("Test") {}.node(
-        icon = icon,
-        selectable = false,
-        expanded = true,
-        userObject = "Test"
-      ).inNode
+      val node: KNode<Label> =
+        label("Test") {}
+          .node(
+            icon = icon,
+            selectable = false,
+            expanded = true,
+            userObject = "Test",
+          ).inNode
 
       assertSame(icon, node.icon)
       assertFalse(node.isSelectable)
@@ -74,23 +88,24 @@ class KVisTreeTest : NeedsLibGDX() {
     assertSame(actor, node.actor)
     assertSame(tree, node.tree)
     assertSame(tree, node.actor.parent)
-    assertSame(node, tree.nodes.first())
+    assertSame(node, tree.rootNodes.first())
   }
 }
 
 /**
  * Tests KTX-adapted widget: [KDragPane].
  */
-class KDragPaneTest : NeedsLibGDX() {
+class KDragPaneTest : ApplicationTest() {
   @Test
   fun `should add actors to its table`() {
     val label: Label
     val image: Image
 
-    val pane = scene2d.dragPane {
-      label = label("Test")
-      image = visImage("white")
-    }
+    val pane =
+      scene2d.dragPane {
+        label = label("Test")
+        image = visImage("white")
+      }
 
     assertTrue(label in pane.table.children)
     assertTrue(image in pane.table.children)
@@ -100,17 +115,19 @@ class KDragPaneTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KTabbedPane].
  */
-class KTabbedPaneTest : NeedsLibGDX() {
+class KTabbedPaneTest : ApplicationTest() {
   @Test
   fun `should add tabs`() {
     val tab: Tab
     val label: Label
 
-    val pane = scene2d.tabbedPane {
-      tab = tab(title = "Test", savable = true, closeableByUser = true) {
-        label = label("Test")
+    val pane =
+      scene2d.tabbedPane {
+        tab =
+          tab(title = "Test", savable = true, closeableByUser = true) {
+            label = label("Test")
+          }
       }
-    }
 
     assertTrue(tab in pane.tabs)
     assertTrue(label in tab.contentTable.children)
@@ -161,11 +178,12 @@ class KTabbedPaneTest : NeedsLibGDX() {
   fun `should allow to add content to Table`() {
     val table = Table()
     val tab: Tab
-    val pane = scene2d.tabbedPane {
-      addTabContentsTo(table)
-      tab("Inactive")
-      tab = tab("Active")
-    }
+    val pane =
+      scene2d.tabbedPane {
+        addTabContentsTo(table)
+        tab("Inactive")
+        tab = tab("Active")
+      }
 
     pane.switchTab(tab)
 
@@ -176,11 +194,12 @@ class KTabbedPaneTest : NeedsLibGDX() {
   fun `should allow to add content to Group`() {
     val group = Group()
     val tab: Tab
-    val pane = scene2d.tabbedPane {
-      addTabContentsTo(group)
-      tab("Inactive")
-      tab = tab("Active")
-    }
+    val pane =
+      scene2d.tabbedPane {
+        addTabContentsTo(group)
+        tab("Inactive")
+        tab = tab("Active")
+      }
 
     pane.switchTab(tab)
 
@@ -191,11 +210,12 @@ class KTabbedPaneTest : NeedsLibGDX() {
   fun `should allow to add content to Container`() {
     val container = Container<Actor>()
     val tab: Tab
-    val pane = scene2d.tabbedPane {
-      addTabContentsTo(container)
-      tab("Inactive")
-      tab = tab("Active")
-    }
+    val pane =
+      scene2d.tabbedPane {
+        addTabContentsTo(container)
+        tab("Inactive")
+        tab = tab("Active")
+      }
 
     pane.switchTab(tab)
 
@@ -206,7 +226,7 @@ class KTabbedPaneTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KVisList].
  */
-class KVisListTest : NeedsLibGDX() {
+class KVisListTest : ApplicationTest() {
   @Test
   fun `should add items`() {
     val list = KVisList<String>(defaultStyle)
@@ -242,7 +262,7 @@ class KVisListTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KVisScrollPane].
  */
-class KVisScrollPaneTest : NeedsLibGDX() {
+class KVisScrollPaneTest : ApplicationTest() {
   @Test
   fun `should store child`() {
     val scrollPane = KVisScrollPane(defaultStyle)
@@ -269,7 +289,7 @@ class KVisScrollPaneTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KVisSelectBox].
  */
-class KSelectBoxTest : NeedsLibGDX() {
+class KSelectBoxTest : ApplicationTest() {
   @Test
   fun `should add items`() {
     val selectBox = KVisSelectBox<String>(defaultStyle)
@@ -305,7 +325,7 @@ class KSelectBoxTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KVisSplitPane].
  */
-class KVisSplitPaneTest : NeedsLibGDX() {
+class KVisSplitPaneTest : ApplicationTest() {
   @Test
   fun `should store two children`() {
     val splitPane = KVisSplitPane(false, defaultHorizontalStyle)
@@ -333,11 +353,10 @@ class KVisSplitPaneTest : NeedsLibGDX() {
   }
 }
 
-
 /**
  * Tests KTX-adapted widget: [KMultiSplitPane].
  */
-class KMultiSplitPaneTest : NeedsLibGDX() {
+class KMultiSplitPaneTest : ApplicationTest() {
   @Test
   fun `should store multiple children`() {
     val splitPane = KMultiSplitPane(false, defaultHorizontalStyle)
@@ -358,16 +377,17 @@ class KMultiSplitPaneTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KCollapsible].
  */
-class KCollapsibleTest : NeedsLibGDX() {
+class KCollapsibleTest : ApplicationTest() {
   @Test
   fun `should add actors to its table`() {
     val label: Label
     val image: Image
 
-    val collapsible = scene2d.collapsible {
-      label = label("Test").cell(expand = true)
-      image = visImage("white")
-    }
+    val collapsible =
+      scene2d.collapsible {
+        label = label("Test").cell(expand = true)
+        image = visImage("white")
+      }
 
     assertTrue(label in collapsible.table.children)
     assertTrue(image in collapsible.table.children)
@@ -377,16 +397,17 @@ class KCollapsibleTest : NeedsLibGDX() {
 /**
  * Tests KTX-adapted widget: [KHorizontalCollapsible].
  */
-class KHorizontalCollapsibleTest : NeedsLibGDX() {
+class KHorizontalCollapsibleTest : ApplicationTest() {
   @Test
   fun `should add actors to its table`() {
     val label: Label
     val image: Image
 
-    val collapsible = scene2d.horizontalCollapsible {
-      label = label("Test").cell(expand = true)
-      image = visImage("white")
-    }
+    val collapsible =
+      scene2d.horizontalCollapsible {
+        label = label("Test").cell(expand = true)
+        image = visImage("white")
+      }
 
     assertTrue(label in collapsible.table.children)
     assertTrue(image in collapsible.table.children)
@@ -395,4 +416,4 @@ class KHorizontalCollapsibleTest : NeedsLibGDX() {
 
 // Note: other extended VisUI widgets are not tested, as they do not implement any custom logic and simply inherit
 // from KGroup or KTable, both of which are already tested. It is assumed that their addActor/add methods are properly
-// implemented - we are basically relying on LibGDX and VisUI to behave correctly.
+// implemented - we are basically relying on libGDX and VisUI to behave correctly.

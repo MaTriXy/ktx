@@ -1,9 +1,20 @@
 package ktx.tiled
 
 import com.badlogic.gdx.maps.MapObject
+import com.badlogic.gdx.maps.MapObjects
 import com.badlogic.gdx.maps.MapProperties
-import com.badlogic.gdx.maps.objects.*
-import com.badlogic.gdx.math.*
+import com.badlogic.gdx.maps.objects.CircleMapObject
+import com.badlogic.gdx.maps.objects.EllipseMapObject
+import com.badlogic.gdx.maps.objects.PolygonMapObject
+import com.badlogic.gdx.maps.objects.PolylineMapObject
+import com.badlogic.gdx.maps.objects.RectangleMapObject
+import com.badlogic.gdx.maps.objects.TextureMapObject
+import com.badlogic.gdx.math.Circle
+import com.badlogic.gdx.math.Ellipse
+import com.badlogic.gdx.math.Polygon
+import com.badlogic.gdx.math.Polyline
+import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.math.Shape2D
 
 /**
  * Extension method to directly access the [MapProperties] of a [MapObject]. If the property
@@ -12,7 +23,8 @@ import com.badlogic.gdx.math.*
  * @return value of the property.
  * @throws MissingPropertyException If the property is not defined.
  */
-inline fun <reified T> MapObject.property(key: String): T = properties[key, T::class.java]
+inline fun <reified T> MapObject.property(key: String): T =
+  properties[key, T::class.java]
     ?: throw MissingPropertyException("Property $key does not exist for object $name")
 
 /**
@@ -23,7 +35,10 @@ inline fun <reified T> MapObject.property(key: String): T = properties[key, T::c
  * @param defaultValue default value in case the property is missing.
  * @return value of the property or defaultValue if property is missing.
  */
-inline fun <reified T> MapObject.property(key: String, defaultValue: T): T = properties[key, defaultValue, T::class.java]
+inline fun <reified T> MapObject.property(
+  key: String,
+  defaultValue: T,
+): T = properties[key, defaultValue, T::class.java]
 
 /**
  * Extension method to directly access the [MapProperties] of a [MapObject]. If the property
@@ -102,11 +117,22 @@ val MapObject.type: String?
  * @throws MissingShapeException If the object does not have any shape
  */
 val MapObject.shape: Shape2D
-  get() = when (this) {
-    is CircleMapObject -> circle
-    is EllipseMapObject -> ellipse
-    is PolylineMapObject -> polyline
-    is PolygonMapObject -> polygon
-    is RectangleMapObject -> rectangle
-    else -> throw MissingShapeException("MapObject of type ${this::class.java} does not have a shape.")
-  }
+  get() =
+    when (this) {
+      is CircleMapObject -> circle
+      is EllipseMapObject -> ellipse
+      is PolylineMapObject -> polyline
+      is PolygonMapObject -> polygon
+      is RectangleMapObject -> rectangle
+      else -> throw MissingShapeException("MapObject of type ${this::class.java} does not have a shape.")
+    }
+
+/**
+ * Returns **true** if and only if the [MapObjects] collection is empty.
+ */
+fun MapObjects.isEmpty() = this.count <= 0
+
+/**
+ * Returns **true** if and only if the [MapObjects] collection is not empty.
+ */
+fun MapObjects.isNotEmpty() = this.count > 0

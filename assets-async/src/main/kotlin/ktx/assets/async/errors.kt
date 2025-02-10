@@ -7,6 +7,7 @@ import com.badlogic.gdx.assets.loaders.AssetLoader
 import com.badlogic.gdx.assets.loaders.AsynchronousAssetLoader
 import com.badlogic.gdx.assets.loaders.SynchronousAssetLoader
 import com.badlogic.gdx.utils.GdxRuntimeException
+import kotlinx.coroutines.Deferred
 
 /**
  * Thrown by [AssetStorage] and related services.
@@ -16,7 +17,10 @@ import com.badlogic.gdx.utils.GdxRuntimeException
  * instances of this exception directly. This class acts as the common superclass
  * with which all [AssetStorage]-related exceptions can be caught and handled.
  */
-open class AssetStorageException(message: String, cause: Throwable? = null) : GdxRuntimeException(message, cause)
+open class AssetStorageException(
+  message: String,
+  cause: Throwable? = null,
+) : GdxRuntimeException(message, cause)
 
 /**
  * Thrown when the asset requested by an [AssetStorage.get] variant is not available
@@ -25,31 +29,36 @@ open class AssetStorageException(message: String, cause: Throwable? = null) : Gd
  * This exception can also be thrown by [AssetStorage.loadSync] when mixing synchronous asset
  * loading with asynchronous loading via [AssetStorage.load] or [AssetStorage.loadAsync].
  */
-class MissingAssetException(identifier: Identifier<*>) :
-  AssetStorageException(message = "Asset: $identifier is not loaded.")
+class MissingAssetException(
+  identifier: Identifier<*>,
+) : AssetStorageException(message = "Asset: $identifier is not loaded.")
 
 /**
  * Thrown by [AssetStorage.load] or [AssetStorage.get] variant when the requested asset
  * was unloaded asynchronously.
  */
-class UnloadedAssetException(identifier: Identifier<*>) :
-  AssetStorageException(message = "Asset: $identifier was unloaded.")
+class UnloadedAssetException(
+  identifier: Identifier<*>,
+) : AssetStorageException(message = "Asset: $identifier was unloaded.")
 
 /**
  * Thrown by [AssetStorage.add] when attempting to add an asset with [Identifier]
  * that is already present in the [AssetStorage].
  */
-class AlreadyLoadedAssetException(identifier: Identifier<*>) :
-  AssetStorageException(message = "Asset: $identifier was already added to storage.")
+class AlreadyLoadedAssetException(
+  identifier: Identifier<*>,
+) : AssetStorageException(message = "Asset: $identifier was already added to storage.")
 
 /**
  * Thrown by [AssetStorage.load] when the [AssetLoader] for the requested asset type
  * and path is unavailable. See [AssetStorage.setLoader].
  */
-class MissingLoaderException(descriptor: AssetDescriptor<*>) :
-  AssetStorageException(
-    message = "No loader available for assets of type: ${descriptor.type} " +
-      "with path: ${descriptor.fileName}."
+class MissingLoaderException(
+  descriptor: AssetDescriptor<*>,
+) : AssetStorageException(
+    message =
+      "No loader available for assets of type: ${descriptor.type} " +
+        "with path: ${descriptor.fileName}.",
   )
 
 /**
@@ -58,18 +67,25 @@ class MissingLoaderException(descriptor: AssetDescriptor<*>) :
  * registration, normally this exception is extremely rare and caused by invalid
  * [AssetStorage.setLoader] usage.
  */
-class InvalidLoaderException(loader: Loader<*>) :
-  AssetStorageException(
-    message = "Invalid loader: $loader. It must extend either " +
-      "SynchronousAssetLoader or AsynchronousAssetLoader."
+class InvalidLoaderException(
+  loader: Loader<*>,
+) : AssetStorageException(
+    message =
+      "Invalid loader: $loader. It must extend either " +
+        "SynchronousAssetLoader or AsynchronousAssetLoader.",
   )
 
 /**
  * Thrown by [AssetStorage.load] or [AssetStorage.get] when the asset failed to load
  * due to an unexpected loading exception, usually thrown by the associated [AssetLoader].
  */
-class AssetLoadingException(descriptor: AssetDescriptor<*>, cause: Throwable)
-  : AssetStorageException(message = "Unable to load asset: $descriptor", cause = cause)
+class AssetLoadingException(
+  message: String,
+  cause: Throwable? = null,
+) : AssetStorageException(message, cause) {
+  constructor(descriptor: AssetDescriptor<*>, cause: Throwable?) :
+    this(message = "Unable to load asset: $descriptor", cause = cause)
+}
 
 /**
  * Thrown when unsupported methods are called on the [AssetManagerWrapper].
@@ -86,10 +102,12 @@ class AssetLoadingException(descriptor: AssetDescriptor<*>, cause: Throwable)
  * and storing assets mapped by path and type rather than path alone. If this exception causes the loading
  * to fail, [AssetLoader] associated with the asset has to be refactored.
  */
-class UnsupportedMethodException(method: String) :
-  AssetStorageException(
-    message = "AssetLoader used unsupported operation of AssetManager wrapper: $method " +
-      "Please refactor AssetLoader not to call this method on AssetManager."
+class UnsupportedMethodException(
+  method: String,
+) : AssetStorageException(
+    message =
+      "AssetLoader used unsupported operation of AssetManager wrapper: $method " +
+        "Please refactor AssetLoader not to call this method on AssetManager.",
   )
 
 /**
@@ -115,10 +133,30 @@ class UnsupportedMethodException(method: String) :
  * mixing synchronous [AssetStorage.loadSync] with asynchronous [AssetStorage.load] or [AssetStorage.loadAsync].
  * If it occurs otherwise, the [AssetLoader] associated with the asset might incorrectly list its dependencies.
  */
-class MissingDependencyException(identifier: Identifier<*>, cause: Throwable? = null) :
-  AssetStorageException(
-    message = "A loader has requested an instance of ${identifier.type} at path ${identifier.path}. " +
-      "This asset was either not listed in dependencies, loaded with exception, is not loaded yet " +
-      "or was unloaded asynchronously.",
-    cause = cause
+class MissingDependencyException(
+  message: String,
+  cause: Throwable? = null,
+) : AssetStorageException(message, cause) {
+  constructor(identifier: Identifier<*>, cause: Throwable? = null) :
+    this(
+      message =
+        "A loader has requested an instance of ${identifier.type} at path ${identifier.path}. " +
+          "This asset was either not listed in dependencies, loaded with exception, is not loaded yet " +
+          "or was unloaded asynchronously.",
+      cause = cause,
+    )
+}
+
+/**
+ * This exception can be thrown when accessing [Deferred] instances returned by [AsyncAssetManager].
+ * It occurs when an asset scheduled for asynchronous loading cannot be loaded due to the [cause]
+ * exception thrown during a dependency loading.
+ */
+class DependencyLoadingException(
+  path: String,
+  dependency: String,
+  cause: Throwable,
+) : AssetStorageException(
+    message = "The asset at path $path cannot be loaded due to the $dependency dependency loading exception.",
+    cause = cause,
   )

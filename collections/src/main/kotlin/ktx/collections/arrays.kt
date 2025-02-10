@@ -3,6 +3,8 @@
 package ktx.collections
 
 import com.badlogic.gdx.utils.Pool
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 /** Alias for [com.badlogic.gdx.utils.Array] avoiding name collision with the standard library. */
 typealias GdxArray<Element> = com.badlogic.gdx.utils.Array<Element>
@@ -25,8 +27,11 @@ typealias GdxLongArray = com.badlogic.gdx.utils.LongArray
 /** Alias for [com.badlogic.gdx.utils.ShortArray] avoiding name collision with the standard library. */
 typealias GdxShortArray = com.badlogic.gdx.utils.ShortArray
 
+/** Alias for [com.badlogic.gdx.utils.ByteArray] avoiding name collision with the standard library. */
+typealias GdxByteArray = com.badlogic.gdx.utils.ByteArray
+
 /**
- * Default LibGDX array size used by most constructors.
+ * Default libGDX array size used by most constructors.
  */
 const val defaultArraySize = 16
 
@@ -60,8 +65,10 @@ inline val GdxBooleanArray?.lastIndex: Int
  * @param initialCapacity initial size of the backing array.
  * @return a new instance of [Array].
  */
-inline fun <reified Type : Any> gdxArrayOf(ordered: Boolean = true, initialCapacity: Int = defaultArraySize): GdxArray<Type> =
-  GdxArray(ordered, initialCapacity, Type::class.java)
+inline fun <reified Type : Any> gdxArrayOf(
+  ordered: Boolean = true,
+  initialCapacity: Int = defaultArraySize,
+): GdxArray<Type> = GdxArray(ordered, initialCapacity, Type::class.java)
 
 /**
  * @param elements will be initially stored in the array.
@@ -96,19 +103,34 @@ inline fun GdxBooleanArray?.size(): Int = this?.size ?: 0
 /**
  * @return true if the array is null or has no elements.
  */
-inline fun <Type> GdxArray<Type>?.isEmpty(): Boolean = this == null || this.size == 0
+@OptIn(ExperimentalContracts::class)
+inline fun <Type> GdxArray<Type>?.isEmpty(): Boolean {
+  contract {
+    returns(false) implies (this@isEmpty != null)
+  }
+  return this == null || this.size == 0
+}
 
 /**
  * @return true if the array is not null and contains at least one element.
  */
-inline fun <Type> GdxArray<Type>?.isNotEmpty(): Boolean = this != null && this.size > 0
+@OptIn(ExperimentalContracts::class)
+inline fun <Type> GdxArray<Type>?.isNotEmpty(): Boolean {
+  contract {
+    returns(true) implies (this@isNotEmpty != null)
+  }
+  return this != null && this.size > 0
+}
 
 /**
  * @param index index of the element in the array.
  * @param alternative returned if index is out of bounds or the element is null.
  * @return a non-null value of stored element or the alternative.
  */
-operator fun <Type> GdxArray<Type>.get(index: Int, alternative: Type): Type {
+operator fun <Type> GdxArray<Type>.get(
+  index: Int,
+  alternative: Type,
+): Type {
   if (index >= this.size) return alternative
   return this[index] ?: alternative
 }
@@ -116,22 +138,25 @@ operator fun <Type> GdxArray<Type>.get(index: Int, alternative: Type): Type {
 /**
  * @param elements will be iterated over and added to the array.
  */
-fun <Type> GdxArray<Type>.addAll(elements: Iterable<Type>) =
-  elements.forEach { this.add(it) }
+fun <Type> GdxArray<Type>.addAll(elements: Iterable<Type>) = elements.forEach { this.add(it) }
 
 /**
  * @param elements will be iterated over and removed from the array.
  * @param identity if true, values will be compared by references. If false, equals method will be invoked.
  */
-fun <Type> GdxArray<Type>.removeAll(elements: Iterable<Type>, identity: Boolean = false) =
-  elements.forEach { this.removeValue(it, identity) }
+fun <Type> GdxArray<Type>.removeAll(
+  elements: Iterable<Type>,
+  identity: Boolean = false,
+) = elements.forEach { this.removeValue(it, identity) }
 
 /**
  * @param elements will be iterated over and removed from the array.
  * @param identity if true, values will be compared by references. If false, equals method will be invoked.
  */
-fun <Type> GdxArray<Type>.removeAll(elements: Array<out Type>, identity: Boolean = false) =
-  elements.forEach { this.removeValue(it, identity) }
+fun <Type> GdxArray<Type>.removeAll(
+  elements: Array<out Type>,
+  identity: Boolean = false,
+) = elements.forEach { this.removeValue(it, identity) }
 
 /**
  * Creates a new [GdxArray] with appended [element].
@@ -203,7 +228,6 @@ operator fun <Type> GdxArray<Type>.plusAssign(elements: Iterable<Type>) {
 operator fun <Type> GdxArray<Type>.plusAssign(elements: Array<out Type>) {
   addAll(elements, 0, elements.size)
 }
-
 
 /**
  * Allows to remove elements from arrays with `array - element` syntax.
@@ -308,7 +332,10 @@ inline fun <Type, R : Comparable<R>> GdxArray<out Type>.sortByDescending(crossin
  * @param pool Removed items are freed to this pool.
  * @return true if the array was modified, false otherwise.
  */
-inline fun <Type> GdxArray<Type>.removeAll(pool: Pool<Type>? = null, predicate: (Type) -> Boolean): Boolean {
+inline fun <Type> GdxArray<Type>.removeAll(
+  pool: Pool<Type>? = null,
+  predicate: (Type) -> Boolean,
+): Boolean {
   var currentWriteIndex = 0
   for (i in 0 until size) {
     val value = items[i]
@@ -333,7 +360,10 @@ inline fun <Type> GdxArray<Type>.removeAll(pool: Pool<Type>? = null, predicate: 
  * @param pool Removed items are freed to this optional pool.
  * @return true if the array was modified, false otherwise.
  */
-inline fun <Type> GdxArray<Type>.retainAll(pool: Pool<Type>? = null, predicate: (Type) -> Boolean): Boolean {
+inline fun <Type> GdxArray<Type>.retainAll(
+  pool: Pool<Type>? = null,
+  predicate: (Type) -> Boolean,
+): Boolean {
   var currentWriteIndex = 0
   for (i in 0 until size) {
     val value = items[i]
@@ -357,7 +387,10 @@ inline fun <Type> GdxArray<Type>.retainAll(pool: Pool<Type>? = null, predicate: 
  * Transfers elements that match the [predicate] into the selected [toArray].
  * The elements will be removed from this array and added [toArray].
  */
-inline fun <Type : T, T> GdxArray<Type>.transfer(toArray: GdxArray<T>, predicate: (Type) -> Boolean) {
+inline fun <Type : T, T> GdxArray<Type>.transfer(
+  toArray: GdxArray<T>,
+  predicate: (Type) -> Boolean,
+) {
   var currentWriteIndex = 0
   for (i in 0 until size) {
     val value = items[i]
@@ -413,17 +446,16 @@ inline fun <Type, C : Iterable<Type>> GdxArray<out C>.flatten(): GdxArray<Type> 
  * Returns a single [GdxArray] of all elements yielded from results of transform function being invoked
  * on each entry of original [GdxArray].
  */
-inline fun <Type, R> GdxArray<Type>.flatMap(transform: (Type) -> Iterable<R>): GdxArray<R> {
-  return this.map(transform).flatten()
-}
+inline fun <Type, R> GdxArray<Type>.flatMap(transform: (Type) -> Iterable<R>): GdxArray<R> = this.map(transform).flatten()
 
 /**
  * @param initialCapacity initial capacity of the set. Will be resized if necessary. Defaults to array size.
  * @param loadFactor decides how many elements the set might contain in relation to its total capacity before it is resized.
- * @return values copied from this array stored in a LibGDX set.
+ * @return values copied from this array stored in a libGDX set.
  */
 fun <Type : Any> GdxArray<Type>.toGdxSet(
-  initialCapacity: Int = this.size, loadFactor: Float = defaultLoadFactor
+  initialCapacity: Int = this.size,
+  loadFactor: Float = defaultLoadFactor,
 ): GdxSet<Type> {
   val set = GdxSet<Type>(initialCapacity, loadFactor)
   set.addAll(this)
@@ -434,10 +466,11 @@ fun <Type : Any> GdxArray<Type>.toGdxSet(
  * @param ordered if false, methods that remove elements may change the order of other elements in the array,
  *      which avoids a memory copy.
  * @param initialCapacity initial size of the backing array.
- * @return values copied from this iterable stored in a LibGDX array.
+ * @return values copied from this iterable stored in a libGDX array.
  */
 inline fun <reified Type : Any> Iterable<Type>.toGdxArray(
-  ordered: Boolean = true, initialCapacity: Int = defaultArraySize
+  ordered: Boolean = true,
+  initialCapacity: Int = defaultArraySize,
 ): GdxArray<Type> {
   val array = GdxArray<Type>(ordered, initialCapacity, Type::class.java)
   array.addAll(this)
@@ -448,10 +481,11 @@ inline fun <reified Type : Any> Iterable<Type>.toGdxArray(
  * @param ordered if false, methods that remove elements may change the order of other elements in the array,
  *      which avoids a memory copy.
  * @param initialCapacity initial size of the backing array. Defaults to this array size.
- * @return values copied from this array stored in a LibGDX array.
+ * @return values copied from this array stored in a libGDX array.
  */
 inline fun <reified Type : Any> Array<Type>.toGdxArray(
-  ordered: Boolean = true, initialCapacity: Int = this.size
+  ordered: Boolean = true,
+  initialCapacity: Int = this.size,
 ): GdxArray<Type> {
   val array = GdxArray<Type>(ordered, initialCapacity, Type::class.java)
   array.addAll(this, 0, this.size)
@@ -462,9 +496,12 @@ inline fun <reified Type : Any> Array<Type>.toGdxArray(
  * @param ordered if false, methods that remove elements may change the order of other elements in the array,
  *      which avoids a memory copy.
  * @param initialCapacity initial size of the backing array. Defaults to this array size.
- * @return values copied from this array stored in an optimized LibGDX int array.
+ * @return values copied from this array stored in an optimized libGDX int array.
  */
-fun IntArray.toGdxArray(ordered: Boolean = true, initialCapacity: Int = this.size): GdxIntArray {
+fun IntArray.toGdxArray(
+  ordered: Boolean = true,
+  initialCapacity: Int = this.size,
+): GdxIntArray {
   val array = GdxIntArray(ordered, initialCapacity)
   array.addAll(this, 0, this.size)
   return array
@@ -474,9 +511,12 @@ fun IntArray.toGdxArray(ordered: Boolean = true, initialCapacity: Int = this.siz
  * @param ordered if false, methods that remove elements may change the order of other elements in the array,
  *      which avoids a memory copy.
  * @param initialCapacity initial size of the backing array. Defaults to this array size.
- * @return values copied from this array stored in an optimized LibGDX float array.
+ * @return values copied from this array stored in an optimized libGDX float array.
  */
-fun FloatArray.toGdxArray(ordered: Boolean = true, initialCapacity: Int = this.size): GdxFloatArray {
+fun FloatArray.toGdxArray(
+  ordered: Boolean = true,
+  initialCapacity: Int = this.size,
+): GdxFloatArray {
   val array = GdxFloatArray(ordered, initialCapacity)
   array.addAll(this, 0, this.size)
   return array
@@ -486,10 +526,55 @@ fun FloatArray.toGdxArray(ordered: Boolean = true, initialCapacity: Int = this.s
  * @param ordered if false, methods that remove elements may change the order of other elements in the array,
  *      which avoids a memory copy.
  * @param initialCapacity initial size of the backing array. Defaults to this array size.
- * @return values copied from this array stored in an optimized LibGDX boolean array.
+ * @return values copied from this array stored in an optimized libGDX boolean array.
  */
-fun BooleanArray.toGdxArray(ordered: Boolean = true, initialCapacity: Int = this.size): GdxBooleanArray {
+fun BooleanArray.toGdxArray(
+  ordered: Boolean = true,
+  initialCapacity: Int = this.size,
+): GdxBooleanArray {
   val array = GdxBooleanArray(ordered, initialCapacity)
   array.addAll(this, 0, this.size)
   return array
 }
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxBooleanArray].
+ */
+fun gdxBooleanArrayOf(vararg elements: Boolean): GdxBooleanArray = GdxBooleanArray(elements)
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxByteArray].
+ */
+fun gdxByteArrayOf(vararg elements: Byte): GdxByteArray = GdxByteArray(elements)
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxCharArray].
+ */
+fun gdxCharArrayOf(vararg elements: Char): GdxCharArray = GdxCharArray(elements)
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxShortArray].
+ */
+fun gdxShortArrayOf(vararg elements: Short): GdxShortArray = GdxShortArray(elements)
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxIntArray].
+ */
+fun gdxIntArrayOf(vararg elements: Int): GdxIntArray = GdxIntArray(elements)
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxLongArray].
+ */
+fun gdxLongArrayOf(vararg elements: Long): GdxLongArray = GdxLongArray(elements)
+
+/**
+ * @param elements will be initially stored in the array.
+ * @return a new instance of [GdxFloatArray].
+ */
+fun gdxFloatArrayOf(vararg elements: Float): GdxFloatArray = GdxFloatArray(elements)

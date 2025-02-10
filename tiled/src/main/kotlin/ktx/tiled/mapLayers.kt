@@ -1,6 +1,7 @@
 package ktx.tiled
 
 import com.badlogic.gdx.maps.MapLayer
+import com.badlogic.gdx.maps.MapLayers
 import com.badlogic.gdx.maps.MapProperties
 
 /**
@@ -10,7 +11,8 @@ import com.badlogic.gdx.maps.MapProperties
  * @return value of the property.
  * @throws MissingPropertyException If the property is not defined.
  */
-inline fun <reified T> MapLayer.property(key: String): T = properties[key, T::class.java]
+inline fun <reified T> MapLayer.property(key: String): T =
+  properties[key, T::class.java]
     ?: throw MissingPropertyException("Property $key does not exist for layer $name")
 
 /**
@@ -21,7 +23,10 @@ inline fun <reified T> MapLayer.property(key: String): T = properties[key, T::cl
  * @param defaultValue default value in case the property is missing.
  * @return value of the property or defaultValue if property is missing.
  */
-inline fun <reified T> MapLayer.property(key: String, defaultValue: T): T = properties[key, defaultValue, T::class.java]
+inline fun <reified T> MapLayer.property(
+  key: String,
+  defaultValue: T,
+): T = properties[key, defaultValue, T::class.java]
 
 /**
  * Extension method to directly access the [MapProperties] of a [MapLayer]. If the property
@@ -38,3 +43,13 @@ inline fun <reified T> MapLayer.propertyOrNull(key: String): T? = properties[key
  * @return true if the property exists. Otherwise false.
  */
 fun MapLayer.containsProperty(key: String) = properties.containsKey(key)
+
+/**
+ * Returns **true** if and only if the [MapLayers] collection is empty.
+ */
+fun MapLayers.isEmpty() = this.count <= 0
+
+/**
+ * Returns **true** if and only if the [MapLayers] collection is not empty.
+ */
+fun MapLayers.isNotEmpty() = this.count > 0

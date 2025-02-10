@@ -21,8 +21,8 @@ import kotlin.reflect.KClass
 @AshleyDsl
 class EngineEntity(
   val engine: Engine,
-  val entity: Entity) {
-}
+  val entity: Entity,
+)
 
 /**
  * Get or creates an instance of the component [T] and adds it to this [entity][EngineEntity].
@@ -76,8 +76,8 @@ inline fun Engine.add(configure: (@AshleyDsl Engine).() -> Unit) {
 /**
  * Create and add an [Entity] to the [Engine].
  *
- * @param configure inlined function with the created [Entity] as the receiver to allow further configuration of
- * the [Entity]. The [Entity] holds the [Entity] created and the [Engine] that created it.
+ * @param configure inlined function with the created [EngineEntity] as the receiver to allow further configuration of
+ * the [Entity]. The [EngineEntity] holds the created [Entity] and this [Engine].
  * @return the created [Entity].
  */
 @OptIn(ExperimentalContracts::class)
@@ -90,13 +90,28 @@ inline fun Engine.entity(configure: EngineEntity.() -> Unit = {}): Entity {
 }
 
 /**
+ * Allows to configure an existing [Entity] with this [Engine].
+ *
+ * @param configure inlined function with an [EngineEntity] wrapping passed [Entity] as the receiver to allow further
+ * configuration of the [Entity]. The [EngineEntity] holds the passed [Entity] and this [Engine].
+ * @see with
+ */
+@OptIn(ExperimentalContracts::class)
+inline fun Engine.configureEntity(
+  entity: Entity,
+  configure: EngineEntity.() -> Unit,
+) {
+  contract { callsInPlace(configure, InvocationKind.EXACTLY_ONCE) }
+  EngineEntity(this, entity).configure()
+}
+
+/**
  * @param T type of the system to retrieve.
  * @return the [EntitySystem] of the given type.
  * @throws MissingEntitySystemException if no system under [T] type is registered.
  * @see Engine.getSystem
  */
-inline fun <reified T : EntitySystem> Engine.getSystem(): T =
-  getSystem(T::class.java) ?: throw MissingEntitySystemException(T::class)
+inline fun <reified T : EntitySystem> Engine.getSystem(): T = getSystem(T::class.java) ?: throw MissingEntitySystemException(T::class)
 
 /**
  * @param type type of the system to retrieve.
@@ -108,13 +123,19 @@ operator fun <T : EntitySystem> Engine.get(type: KClass<T>): T? = getSystem(type
 /**
  * Thrown when unable to create a component of given type.
  */
-class CreateComponentException(type: KClass<*>, cause: Throwable? = null) : RuntimeException(
-  "Could not create component ${type.javaObjectType} - is a visible no-arg constructor available?", cause
-)
+class CreateComponentException(
+  type: KClass<*>,
+  cause: Throwable? = null,
+) : RuntimeException(
+    "Could not create component ${type.javaObjectType} - is a visible no-arg constructor available?",
+    cause,
+  )
 
 /**
  * Thrown when accessing an [EntitySystem] via [getSystem] that does not exist in the [Engine].
  */
-class MissingEntitySystemException(type: KClass<out EntitySystem>) : GdxRuntimeException(
-  "Could not access system of type ${type.qualifiedName} - is it added to the engine?"
-)
+class MissingEntitySystemException(
+  type: KClass<out EntitySystem>,
+) : GdxRuntimeException(
+    "Could not access system of type ${type.qualifiedName} - is it added to the engine?",
+  )

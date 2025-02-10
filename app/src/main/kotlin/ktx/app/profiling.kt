@@ -1,6 +1,6 @@
 package ktx.app
 
-import com.badlogic.gdx.*
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.PerformanceCounter
 
 /**
@@ -16,8 +16,10 @@ import com.badlogic.gdx.utils.PerformanceCounter
  * [PerformanceCounter.reset] should be called.
  */
 inline fun profile(
-  name: String = "Profiler", repeats: Int = 10, printResults: Boolean = true,
-  operation: () -> Unit
+  name: String = "Profiler",
+  repeats: Int = 10,
+  printResults: Boolean = true,
+  operation: () -> Unit,
 ): PerformanceCounter {
   val performanceCounter = PerformanceCounter(name, repeats)
   performanceCounter.profile(repeats, printResults, operation)
@@ -36,9 +38,9 @@ inline fun profile(
  * operation, [PerformanceCounter.reset] should be called.
  */
 inline fun PerformanceCounter.profile(
-  repeats: Int = if(time.mean != null) time.mean.windowSize else 10,
+  repeats: Int = if (time.mean != null) time.mean.windowSize else 10,
   printResults: Boolean = true,
-  operation: () -> Unit
+  operation: () -> Unit,
 ) {
   if (this.time.count == 0) tick()
   repeat(repeats) {
@@ -63,8 +65,11 @@ fun PerformanceCounter.prettyPrint(decimalFormat: String = "%.6fs") {
   val minimum: Float
   val maximum: Float
   if (mean != null && mean.hasEnoughData()) {
-    Gdx.app.log(name, "Average OP time: ${decimalFormat.format(mean.mean)} " +
-      "± ${decimalFormat.format(mean.standardDeviation())}")
+    Gdx.app.log(
+      name,
+      "Average OP time: ${decimalFormat.format(mean.mean)} " +
+        "± ${decimalFormat.format(mean.standardDeviation())}",
+    )
     minimum = mean.lowest
     maximum = mean.highest
   } else {
@@ -76,4 +81,3 @@ fun PerformanceCounter.prettyPrint(decimalFormat: String = "%.6fs") {
   Gdx.app.log(name, "Maximum OP time: ${decimalFormat.format(maximum)}")
   Gdx.app.log(name, "--------------------------------------------")
 }
-

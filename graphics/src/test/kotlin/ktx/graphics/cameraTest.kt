@@ -5,19 +5,25 @@ import com.badlogic.gdx.backends.lwjgl.LwjglNativesLoader
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.math.Vector3
-import com.nhaarman.mockitokotlin2.*
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.spy
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 
 class CameraUtilitiesTest {
   @Before
   fun `mock graphics`() {
     LwjglNativesLoader.load()
-    Gdx.graphics = mock {
-      on { width } doReturn 800
-      on { height } doReturn 600
-    }
+    Gdx.graphics =
+      mock {
+        on { width } doReturn 800
+        on { height } doReturn 600
+      }
   }
 
   @Test
@@ -124,12 +130,13 @@ class LetterboxingViewportTest {
   @Before
   fun `mock graphics`() {
     LwjglNativesLoader.load()
-    Gdx.graphics = mock {
-      on(it.ppiX) doReturn 100f
-      on(it.ppiY) doReturn 100f
-      on(it.width) doReturn 800
-      on(it.height) doReturn 600
-    }
+    Gdx.graphics =
+      mock {
+        on(it.ppiX) doReturn 100f
+        on(it.ppiY) doReturn 100f
+        on(it.width) doReturn 800
+        on(it.height) doReturn 600
+      }
     Gdx.gl20 = mock()
     Gdx.gl = Gdx.gl20
   }

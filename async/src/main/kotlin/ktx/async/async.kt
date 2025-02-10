@@ -5,9 +5,10 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.async.AsyncExecutor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.SupervisorJob
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.resume
 
@@ -59,8 +60,10 @@ fun newSingleThreadAsyncContext(threadName: String = "AsyncExecutor-Thread") = n
  *
  * [AsyncExecutor] threads will be named according to the [threadName] pattern.
  */
-fun newAsyncContext(threads: Int, threadName: String = "AsyncExecutor-Thread") =
-  AsyncExecutorDispatcher(AsyncExecutor(threads, threadName), threads)
+fun newAsyncContext(
+  threads: Int,
+  threadName: String = "AsyncExecutor-Thread",
+) = AsyncExecutorDispatcher(AsyncExecutor(threads, threadName), threads)
 
 /**
  * Suspends the coroutine to execute the defined [block] on the main rendering thread and return its result.
@@ -71,9 +74,8 @@ suspend fun <T> onRenderingThread(block: suspend CoroutineScope.() -> T) = withC
  * Returns true if the coroutine was launched from a rendering thread dispatcher.
  */
 fun CoroutineScope.isOnRenderingThread() =
-  coroutineContext[ContinuationInterceptor.Key] is RenderingThreadDispatcher
-    && Thread.currentThread() === MainDispatcher.mainThread
-
+  coroutineContext[ContinuationInterceptor.Key] is RenderingThreadDispatcher &&
+    Thread.currentThread() === MainDispatcher.mainThread
 
 /**
  * Attempts to skip the current frame. Resumes the execution using a task scheduled with [Application.postRunnable].
@@ -82,6 +84,7 @@ fun CoroutineScope.isOnRenderingThread() =
  * frame before resuming, but it will always suspend the current coroutine until the [Runnable] instances scheduled
  * with [Application.postRunnable] are executed by the [Application].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 suspend fun skipFrame() {
   suspendCancellableCoroutine<Unit> { continuation ->
     Gdx.app.postRunnable {

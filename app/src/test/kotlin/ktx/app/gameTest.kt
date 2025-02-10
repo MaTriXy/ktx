@@ -4,11 +4,22 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.nhaarman.mockitokotlin2.*
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 
 /**
  * Tests [KtxGame]: KTX equivalent of [com.badlogic.gdx.Game].
@@ -24,16 +35,17 @@ class KtxGameTest {
   fun `should display firstScreen without registration`() {
     val screen = mock<Screen>()
     val game = KtxGame(firstScreen = screen)
-    Gdx.graphics = mock {
-      on(it.width) doReturn 800
-      on(it.height) doReturn 600
-    }
+    Gdx.graphics =
+      mock {
+        on(it.width) doReturn 800
+        on(it.height) doReturn 600
+      }
 
     game.create()
 
     assertSame(screen, game.shownScreen)
-    verify(screen).resize(800, 600)
     verify(screen).show()
+    verify(screen).resize(800, 600)
     // addScreen must be called manually to keep firstScreen in context - should not contain initial Screen:
     assertFalse(game.containsScreen<Screen>())
   }
@@ -160,17 +172,18 @@ class KtxGameTest {
     val secondScreen = mock<KtxScreen>()
     val game = KtxGame(firstScreen)
     game.addScreen(secondScreen)
-    Gdx.graphics = mock {
-      on(it.width) doReturn 800
-      on(it.height) doReturn 600
-    }
+    Gdx.graphics =
+      mock {
+        on(it.width) doReturn 800
+        on(it.height) doReturn 600
+      }
 
     game.setScreen<KtxScreen>()
 
     assertSame(secondScreen, game.shownScreen)
     verify(firstScreen).hide()
-    verify(secondScreen).resize(800, 600)
     verify(secondScreen).show()
+    verify(secondScreen).resize(800, 600)
   }
 
   @Test(expected = GdxRuntimeException::class)
@@ -198,12 +211,14 @@ class KtxGameTest {
   fun `should dispose of all registered Screen instances with error handling`() {
     Gdx.app = mock()
     val screen = mock<Screen>()
-    val ktxScreen = mock<KtxScreen> {
-      on(it.dispose()) doThrow GdxRuntimeException("Expected.")
-    }
-    val mockScreen = mock<MockScreen> {
-      on(it.dispose()) doThrow GdxRuntimeException("Expected.")
-    }
+    val ktxScreen =
+      mock<KtxScreen> {
+        on(it.dispose()) doThrow GdxRuntimeException("Expected.")
+      }
+    val mockScreen =
+      mock<MockScreen> {
+        on(it.dispose()) doThrow GdxRuntimeException("Expected.")
+      }
     val game = KtxGame<Screen>()
     game.addScreen(screen)
     game.addScreen(ktxScreen)
@@ -218,7 +233,7 @@ class KtxGameTest {
   }
 
   @After
-  fun `clear static LibGDX variables`() {
+  fun `clear static libGDX variables`() {
     Gdx.graphics = null
     Gdx.gl = null
     Gdx.gl20 = null
